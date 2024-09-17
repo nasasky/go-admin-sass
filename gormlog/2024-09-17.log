@@ -1,0 +1,819 @@
+
+2024/09/17 13:59:22 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[18.614ms] [rows:0] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 13:59:22 D:/mycode/nasa-go-admin/services/app_service/login.go:27 Error 1054 (42S22): Unknown column 'token' in 'field list'
+[12.897ms] [rows:0] INSERT INTO `app_user` (`token`,`username`,`password`,`enable`,`phone`,`create_time`,`update_time`) VALUES ('','admin2','e10adc3949ba59abbe56e057f20f883e',false,'16620436581','2024-09-17 13:59:22.817','2024-09-17 13:59:22.817')
+
+2024/09/17 14:01:59 D:/mycode/nasa-go-admin/services/app_service/login.go:47
+[16.157ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436582' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:20:34 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[35.705ms] [rows:0] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:20:34 D:/mycode/nasa-go-admin/services/app_service/login.go:27
+[21.323ms] [rows:1] INSERT INTO `app_user` (`phone`,`password`,`username`,`create_time`,`update_time`) VALUES ('16620436581','e10adc3949ba59abbe56e057f20f883e','admin2','2024-09-17 14:20:34.796','2024-09-17 14:20:34.796')
+
+2024/09/17 14:20:34 D:/mycode/nasa-go-admin/services/app_service/login.go:31 Error 1054 (42S22): Unknown column 'nickName' in 'field list'
+[11.895ms] [rows:0] INSERT INTO `app_user` (`avatar`,`address`,`email`,`nickName`,`create_time`,`update_time`,`phone`,`id`) VALUES ('','','','admin2','','','',4)
+
+2024/09/17 14:35:43 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[19.947ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:39:13 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[38.225ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:45:58 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[26.023ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:49:50 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[23.528ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 14:51:40 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[19.506ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436581' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 17:58:48 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[19.990ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436582' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 18:06:06 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[24.952ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436582' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 18:20:02 D:/mycode/nasa-go-admin/services/app_service/login.go:69
+[18.871ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436582' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 18:23:07 D:/mycode/nasa-go-admin/services/app_service/login.go:47
+[15.853ms] [rows:1] SELECT * FROM `app_user` WHERE phone = '16620436582' ORDER BY `app_user`.`id` LIMIT 1
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/auth.go:47
+[14.966ms] [rows:1] SELECT * FROM `user` WHERE username ='admin'  AND password='e10adc3949ba59abbe56e057f20f883e'
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/user.go:23
+[16.739ms] [rows:1] SELECT * FROM `user` WHERE id=1
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/user.go:24
+[14.643ms] [rows:1] SELECT * FROM `profile` WHERE userId=1
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/user.go:26
+[15.066ms] [rows:2] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:21
+[14.721ms] [rows:1] SELECT count(*) FROM `user_roles_role` WHERE userId=1 and roleId=1
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:31
+[9.085ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:35
+[37.309ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[16.678ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[16.221ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[15.377ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[16.363ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[14.444ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:35
+[15.159ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[14.757ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:35
+[14.629ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[15.344ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[14.560ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:38
+[14.133ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 18:52:13 D:/mycode/nasa-go-admin/api/role.go:35
+[14.338ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:19
+[9.182ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.723ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.058ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.459ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.761ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.287ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.431ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.730ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.926ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:22
+[16.527ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[19.174ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.552ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.778ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 18:52:22 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.009ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:19
+[8.465ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.418ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.558ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/role.go:72
+[39.440ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[48.671ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/role.go:74
+[46.035ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.547ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/role.go:77
+[16.148ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.640ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/role.go:77
+[15.354ms] [rows:11] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=2
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.902ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.102ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.494ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.089ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.498ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.870ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.039ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 18:52:24 D:/mycode/nasa-go-admin/api/permissions.go:22
+[13.615ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:149
+[13.766ms] [rows:1] DELETE FROM `role` WHERE id ='2'
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:150
+[14.171ms] [rows:1] DELETE FROM `user_roles_role` WHERE roleId ='2'
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:151
+[12.693ms] [rows:11] DELETE FROM `role_permissions_permission` WHERE roleId ='2'
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:72
+[8.732ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:74
+[13.357ms] [rows:1] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 18:52:37 D:/mycode/nasa-go-admin/api/role.go:77
+[14.148ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:126
+[19.470ms] [rows:1] INSERT INTO `role` (`code`,`name`,`enable`) VALUES ('001','租户001',true)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.728ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,9)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.872ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,14)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.244ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,10)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[14.529ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,11)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[14.925ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,12)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[14.510ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,15)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.762ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,6)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[31.588ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,7)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[14.555ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,2)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[12.466ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,1)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.177ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,3)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.298ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,5)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[13.479ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,4)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[12.744ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,13)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:132
+[12.769ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (3,8)
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:72
+[8.879ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:74
+[14.530ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:77
+[14.031ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 18:53:09 D:/mycode/nasa-go-admin/api/role.go:77
+[13.125ms] [rows:15] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=3
+
+2024/09/17 18:58:04 D:/mycode/nasa-go-admin/api/role.go:49
+[8.817ms] [rows:2] SELECT * FROM `role`
+
+2024/09/17 18:58:04 D:/mycode/nasa-go-admin/api/user.go:56
+[226.234ms] [rows:1] SELECT count(*) FROM `profile`
+
+2024/09/17 18:58:04 D:/mycode/nasa-go-admin/api/user.go:57
+[15.009ms] [rows:1] SELECT * FROM `profile` LIMIT 10
+
+2024/09/17 18:58:04 D:/mycode/nasa-go-admin/api/user.go:60
+[14.231ms] [rows:1] SELECT * FROM `user` WHERE id=1 ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 18:58:04 D:/mycode/nasa-go-admin/api/user.go:62
+[15.407ms] [rows:1] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/role.go:72
+[10.726ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:19
+[21.088ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/role.go:74
+[18.898ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:22
+[19.941ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/role.go:77
+[23.239ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[21.401ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/role.go:77
+[26.679ms] [rows:15] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=3
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[26.681ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[17.652ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[18.921ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[19.336ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.667ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.056ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:22
+[19.805ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.308ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[17.427ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.661ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 19:19:10 D:/mycode/nasa-go-admin/api/permissions.go:22
+[29.256ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/role.go:72
+[9.476ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:19
+[10.314ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/role.go:74
+[29.130ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:22
+[27.304ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/role.go:77
+[17.027ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:25
+[18.567ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/role.go:77
+[15.581ms] [rows:15] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=3
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:25
+[27.549ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:25
+[24.469ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:25
+[22.234ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:25
+[21.946ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 19:21:43 D:/mycode/nasa-go-admin/api/permissions.go:22
+[24.216ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:25
+[36.153ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:22
+[22.223ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:25
+[27.926ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.882ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:25
+[24.203ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 19:21:44 D:/mycode/nasa-go-admin/api/permissions.go:22
+[18.852ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 19:21:56 D:/mycode/nasa-go-admin/api/role.go:149
+[39.769ms] [rows:1] DELETE FROM `role` WHERE id ='3'
+
+2024/09/17 19:21:56 D:/mycode/nasa-go-admin/api/role.go:150
+[19.635ms] [rows:0] DELETE FROM `user_roles_role` WHERE roleId ='3'
+
+2024/09/17 19:21:56 D:/mycode/nasa-go-admin/api/role.go:151
+[16.472ms] [rows:15] DELETE FROM `role_permissions_permission` WHERE roleId ='3'
+
+2024/09/17 19:21:57 D:/mycode/nasa-go-admin/api/role.go:72
+[18.473ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 19:21:57 D:/mycode/nasa-go-admin/api/role.go:74
+[25.221ms] [rows:1] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 19:21:57 D:/mycode/nasa-go-admin/api/role.go:77
+[37.544ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:126
+[16.977ms] [rows:1] INSERT INTO `role` (`code`,`name`,`enable`) VALUES ('STORE','租户商家',true)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[18.891ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,9)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[16.127ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,14)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[17.550ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,10)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[14.905ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,11)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[24.309ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,12)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[28.283ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,15)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[24.206ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,6)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[22.545ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,7)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[23.833ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,2)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[19.835ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,1)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[21.719ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,3)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[16.933ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,5)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[23.471ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,4)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[16.588ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,13)
+
+2024/09/17 19:22:24 D:/mycode/nasa-go-admin/api/role.go:132
+[16.543ms] [rows:1] INSERT INTO `role_permissions_permission` (`roleId`,`permissionId`) VALUES (4,8)
+
+2024/09/17 19:22:25 D:/mycode/nasa-go-admin/api/role.go:72
+[11.227ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 19:22:25 D:/mycode/nasa-go-admin/api/role.go:74
+[24.531ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 19:22:25 D:/mycode/nasa-go-admin/api/role.go:77
+[19.051ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 19:22:25 D:/mycode/nasa-go-admin/api/role.go:77
+[19.023ms] [rows:15] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=4
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/role.go:72
+[10.375ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:19
+[10.893ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:22
+[18.422ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/role.go:74
+[20.653ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/role.go:77
+[19.424ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[23.106ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/role.go:77
+[23.396ms] [rows:15] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=4
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[25.926ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[22.736ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[24.272ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[26.701ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:22
+[22.442ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[24.703ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.624ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.239ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[18.650ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.748ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 19:29:21 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.059ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/role.go:21
+[23.905ms] [rows:1] SELECT count(*) FROM `user_roles_role` WHERE userId=1 and roleId=1
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/user.go:23
+[33.286ms] [rows:1] SELECT * FROM `user` WHERE id=1
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/role.go:31
+[14.100ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/role.go:35
+[18.800ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/user.go:24
+[33.744ms] [rows:1] SELECT * FROM `profile` WHERE userId=1
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/role.go:38
+[21.073ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/17 19:29:25 D:/mycode/nasa-go-admin/api/user.go:26
+[20.922ms] [rows:1] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[27.094ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[19.436ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[23.904ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[30.659ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:35
+[21.021ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[17.239ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:35
+[16.601ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[18.297ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[18.599ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:38
+[25.224ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/17 19:29:26 D:/mycode/nasa-go-admin/api/role.go:35
+[13.829ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/17 19:29:27 D:/mycode/nasa-go-admin/api/user.go:56
+[25.155ms] [rows:1] SELECT count(*) FROM `profile`
+
+2024/09/17 19:29:27 D:/mycode/nasa-go-admin/api/role.go:49
+[31.736ms] [rows:2] SELECT * FROM `role`
+
+2024/09/17 19:29:27 D:/mycode/nasa-go-admin/api/user.go:57
+[24.853ms] [rows:1] SELECT * FROM `profile` LIMIT 10
+
+2024/09/17 19:29:27 D:/mycode/nasa-go-admin/api/user.go:60
+[50.093ms] [rows:1] SELECT * FROM `user` WHERE id=1 ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 19:29:27 D:/mycode/nasa-go-admin/api/user.go:62
+[32.766ms] [rows:1] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:146
+[17.927ms] [rows:1] INSERT INTO `user` (`username`,`password`,`enable`,`createTime`,`updateTime`) VALUES ('nasa','e10adc3949ba59abbe56e057f20f883e',true,'2024-09-17 19:30:01.729','2024-09-17 19:30:01.729')
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:150
+[20.619ms] [rows:1] INSERT INTO `profile` (`gender`,`avatar`,`address`,`email`,`userId`,`nickName`) VALUES (0,'','','',2,'nasa')
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:155
+[18.691ms] [rows:1] INSERT INTO `user_roles_role` (`userId`,`roleId`) VALUES (2,4)
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:56
+[8.796ms] [rows:1] SELECT count(*) FROM `profile`
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:57
+[17.834ms] [rows:2] SELECT * FROM `profile` LIMIT 10
+
+2024/09/17 19:30:01 D:/mycode/nasa-go-admin/api/user.go:60
+[19.051ms] [rows:1] SELECT * FROM `user` WHERE id=1 ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 19:30:02 D:/mycode/nasa-go-admin/api/user.go:62
+[19.856ms] [rows:1] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/17 19:30:02 D:/mycode/nasa-go-admin/api/user.go:60
+[15.040ms] [rows:1] SELECT * FROM `user` WHERE id=2 ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 19:30:02 D:/mycode/nasa-go-admin/api/user.go:62
+[22.319ms] [rows:1] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=2)
+
+2024/09/17 20:05:14 D:/mycode/nasa-go-admin/services/admin_service/user.go:34
+[19.452ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:05:14 D:/mycode/nasa-go-admin/services/admin_service/user.go:20 Error 1054 (42S22): Unknown column 'create_time' in 'field list'
+[6.342ms] [rows:0] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',0,'123456','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:07:16 D:/mycode/nasa-go-admin/services/admin_service/user.go:34
+[15.000ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:07:16 D:/mycode/nasa-go-admin/services/admin_service/user.go:20 Error 1264 (22003): Out of range value for column 'phone' at row 1
+[12.927ms] [rows:0] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',0,'123456','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:08:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:34
+[12.947ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:08:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:20 Error 1364 (HY000): Field 'id' doesn't have a default value
+[13.364ms] [rows:0] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',0,'123456','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:09:01 D:/mycode/nasa-go-admin/services/admin_service/user.go:34
+[15.486ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:09:01 D:/mycode/nasa-go-admin/services/admin_service/user.go:20
+[35.584ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',0,'123456','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:15:24 D:/mycode/nasa-go-admin/services/admin_service/user.go:35
+[21.426ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:15:24 D:/mycode/nasa-go-admin/services/admin_service/user.go:21
+[19.906ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'123456','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:16:23 D:/mycode/nasa-go-admin/services/admin_service/user.go:37
+[16.163ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:16:23 D:/mycode/nasa-go-admin/services/admin_service/user.go:23 Error 1366 (HY000): Incorrect integer value: 'e10adc3949ba59abbe56e057f20f883e' for column 'password' at row 1
+[47.779ms] [rows:0] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:17:08 D:/mycode/nasa-go-admin/services/admin_service/user.go:37
+[13.884ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:17:08 D:/mycode/nasa-go-admin/services/admin_service/user.go:23
+[15.741ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','0000-00-00 00:00:00','0000-00-00 00:00:00')
+
+2024/09/17 20:17:54 D:/mycode/nasa-go-admin/services/admin_service/user.go:37
+[22.014ms] [rows:1] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:58:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:56
+[17.159ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:58:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:26
+[14.092ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:58:34.186','2024-09-17 20:58:34.186')
+
+2024/09/17 20:58:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:52 Error 1054 (42S22): Unknown column 'create_time' in 'field list'
+[21.332ms] [rows:0] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`,`id`) VALUES ('松鼠商店','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:58:34.186','2024-09-17 20:58:34.186',4,4)
+
+2024/09/17 20:59:32 D:/mycode/nasa-go-admin/services/admin_service/user.go:56
+[14.225ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:59:32 D:/mycode/nasa-go-admin/services/admin_service/user.go:26
+[14.231ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:59:32.661','2024-09-17 20:59:32.661')
+
+2024/09/17 20:59:32 D:/mycode/nasa-go-admin/services/admin_service/user.go:52 Error 1264 (22003): Out of range value for column 'phone' at row 1
+[27.746ms] [rows:0] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`,`id`) VALUES ('松鼠商店','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:59:32.661','2024-09-17 20:59:32.661',5,5)
+
+2024/09/17 20:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:56
+[14.376ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 20:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:26
+[14.614ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:59:59.068','2024-09-17 20:59:59.068')
+
+2024/09/17 20:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:52
+[35.485ms] [rows:1] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`,`id`) VALUES ('松鼠商店','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 20:59:59.068','2024-09-17 20:59:59.068',6,6)
+
+2024/09/17 21:03:07 D:/mycode/nasa-go-admin/services/admin_service/user.go:56
+[15.845ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 21:03:07 D:/mycode/nasa-go-admin/services/admin_service/user.go:26
+[14.119ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 21:03:07.867','2024-09-17 21:03:07.867')
+
+2024/09/17 21:03:07 D:/mycode/nasa-go-admin/services/admin_service/user.go:52
+[35.988ms] [rows:1] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`,`id`) VALUES ('松鼠商店','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 21:03:07.867','2024-09-17 21:03:07.867',7,7)
+
+2024/09/17 21:03:39 D:/mycode/nasa-go-admin/services/admin_service/user.go:55
+[16.182ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 21:03:39 D:/mycode/nasa-go-admin/services/admin_service/user.go:26
+[13.745ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 21:03:39.694','2024-09-17 21:03:39.694')
+
+2024/09/17 21:03:39 D:/mycode/nasa-go-admin/services/admin_service/user.go:51
+[35.834ms] [rows:1] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`) VALUES ('松鼠商店','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 21:03:39.694','2024-09-17 21:03:39.694',8)
+
+2024/09/17 21:05:48 D:/mycode/nasa-go-admin/services/admin_service/user.go:55
+[13.572ms] [rows:1] SELECT * FROM `tenants` WHERE phone = '16620436582' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 21:55:49 D:/mycode/nasa-go-admin/services/admin_service/user.go:66
+[16.298ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:02:30 D:/mycode/nasa-go-admin/services/admin_service/user.go:70
+[23.110ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:04:26 D:/mycode/nasa-go-admin/services/admin_service/user.go:70
+[19.462ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:06:28 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[23.289ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:07:05 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[16.738ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:07:36 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[17.488ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436587' OR phone = '16620436587') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:07:51 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[13.430ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436582' OR phone = '16620436582') AND password = 'fcea920f7412b5da7be0cf42b8c93759' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:08:26 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[14.972ms] [rows:1] SELECT * FROM `user` WHERE (username = '16620436582' OR phone = '16620436582') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:09:21 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[20.484ms] [rows:0] SELECT * FROM `user` WHERE (username = '16620436581' OR phone = '16620436581') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:09:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[16.266ms] [rows:1] SELECT * FROM `user` WHERE (username = '16620436582' OR phone = '16620436582') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:10:35 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[15.764ms] [rows:1] SELECT * FROM `user` WHERE (username = '16620436582' OR phone = '16620436582') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:24:39 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[15.343ms] [rows:1] SELECT * FROM `user` WHERE (username = 'admin' OR phone = 'admin') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:25:21 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[13.922ms] [rows:0] SELECT * FROM `user` WHERE (username = 'adminc' OR phone = 'adminc') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:27:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:72
+[15.295ms] [rows:1] SELECT * FROM `user` WHERE (username = 'admin' OR phone = 'admin') AND password = 'e10adc3949ba59abbe56e057f20f883e' ORDER BY `user`.`id` LIMIT 1
+
+2024/09/17 22:55:37 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[19.431ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 22:55:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[40.718ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 22:55:37.969','2024-09-17 22:55:37.969')
+
+2024/09/17 22:55:38 D:/mycode/nasa-go-admin/services/admin_service/user.go:55 Error 1054 (42S22): Unknown column 'token' in 'field list'
+[22.660ms] [rows:0] INSERT INTO `user` (`token`,`username`,`password`,`phone`,`role_id`,`create_time`,`update_time`,`tenant_id`) VALUES ('','松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582',0,'2024-09-17 22:55:37.969','2024-09-17 22:55:37.969',9)
+
+2024/09/17 22:57:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[15.325ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 22:57:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[15.261ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 22:57:04.124','2024-09-17 22:57:04.124')
+
+2024/09/17 22:57:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:55 Error 1054 (42S22): Unknown column 'token' in 'field list'
+[22.631ms] [rows:0] INSERT INTO `user` (`token`,`username`,`password`,`phone`,`role_id`,`create_time`,`update_time`,`tenant_id`) VALUES ('','松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582',0,'2024-09-17 22:57:04.124','2024-09-17 22:57:04.124',10)
+
+2024/09/17 22:59:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[23.009ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 22:59:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[19.752ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 22:59:04.053','2024-09-17 22:59:04.053')
+
+2024/09/17 22:59:04 D:/mycode/nasa-go-admin/services/admin_service/user.go:55 Error 1054 (42S22): Unknown column 'role_id' in 'field list'
+[29.029ms] [rows:0] INSERT INTO `user` (`username`,`password`,`phone`,`role_id`,`create_time`,`update_time`,`tenant_id`) VALUES ('松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582',0,'2024-09-17 22:59:04.053','2024-09-17 22:59:04.053',11)
+
+2024/09/17 22:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:60
+[19.637ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 22:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[15.343ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 22:59:59.081','2024-09-17 22:59:59.081')
+
+2024/09/17 22:59:59 D:/mycode/nasa-go-admin/services/admin_service/user.go:56 Error 1054 (42S22): Unknown column 'role_id' in 'field list'
+[22.697ms] [rows:0] INSERT INTO `user` (`username`,`password`,`phone`,`role_id`,`create_time`,`update_time`,`tenant_id`) VALUES ('松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582',3,'2024-09-17 22:59:59.081','2024-09-17 22:59:59.081',12)
+
+2024/09/17 23:01:20 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[19.161ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 23:01:20 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[35.296ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 23:01:20.153','2024-09-17 23:01:20.153')
+
+2024/09/17 23:01:20 D:/mycode/nasa-go-admin/services/admin_service/user.go:55 Error 1062 (23000): Duplicate entry '16620436582' for key 'user__index'
+[34.496ms] [rows:0] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`) VALUES ('松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 23:01:20.153','2024-09-17 23:01:20.153',13)
+
+2024/09/17 23:02:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[17.372ms] [rows:0] SELECT * FROM `tenants` WHERE phone = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1
+
+2024/09/17 23:02:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:30
+[14.164ms] [rows:1] INSERT INTO `tenants` (`username`,`tenant_name`,`role_id`,`password`,`phone`,`create_time`,`update_time`) VALUES ('松鼠商店2','',3,'e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 23:02:34.704','2024-09-17 23:02:34.704')
+
+2024/09/17 23:02:34 D:/mycode/nasa-go-admin/services/admin_service/user.go:55
+[36.537ms] [rows:1] INSERT INTO `user` (`username`,`password`,`phone`,`create_time`,`update_time`,`tenant_id`) VALUES ('松鼠商店2','e10adc3949ba59abbe56e057f20f883e','16620436582','2024-09-17 23:02:34.704','2024-09-17 23:02:34.704',14)
+
+2024/09/17 23:05:11 D:/mycode/nasa-go-admin/services/admin_service/user.go:59
+[17.742ms] [rows:1] SELECT * FROM `tenants` WHERE username = '松鼠商店2' ORDER BY `tenants`.`id` LIMIT 1

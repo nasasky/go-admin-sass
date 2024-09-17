@@ -1,0 +1,66 @@
+2024/09/17 14:39:13 POST /api/app/register 127.0.0.1  username=admin2&password=123456&phone=16620436581 40.4928ms
+2024/09/17 18:20:02 POST /api/app/register 127.0.0.1  username=admin&password=123456&phone=16620436582 21.0848ms
+2024/09/17 18:23:07 POST /api/app/login 127.0.0.1  phone=16620436582&password=123456 107.9658ms
+2024/09/17 18:40:09 GET /role/permissions/tree ::1   3.1141ms
+2024/09/17 18:40:09 GET /user/detail ::1   2.0812ms
+2024/09/17 18:40:15 POST /auth/logout ::1   18.5722ms
+2024/09/17 18:40:15 GET /auth/captcha ::1 1726569615564  0s
+2024/09/17 18:40:18 GET /auth/captcha ::1 1726569618493  0s
+2024/09/17 18:40:20 GET /auth/captcha ::1 1726569620004  0s
+2024/09/17 18:40:21 GET /auth/captcha ::1 1726569621771  0s
+2024/09/17 18:40:30 GET /auth/captcha ::1 1726569629978  0s
+2024/09/17 18:42:27 GET /auth/captcha 127.0.0.1 1726569615564  0s
+2024/09/17 18:44:47 GET /api/auth/captcha ::1 1726569887583  0s
+2024/09/17 18:44:55 GET /api/auth/captcha ::1 1726569895883  0s
+2024/09/17 18:45:34 GET /auth/captcha ::1 1726569933948  0s
+2024/09/17 18:45:38 GET /auth/captcha ::1 1726569938041  542.5µs
+2024/09/17 18:45:40 GET /auth/captcha ::1 1726569940731  0s
+2024/09/17 18:46:03 GET /auth/captcha ::1 1726569963801  0s
+2024/09/17 18:46:07 GET /auth/captcha ::1 1726569966976  0s
+2024/09/17 18:47:11 GET /auth/captcha ::1 1726570031618  0s
+2024/09/17 18:47:50 GET /auth/captcha ::1 1726570070895  0s
+2024/09/17 18:48:17 GET /admin/auth/captcha ::1 1726570097255  0s
+2024/09/17 18:48:25 GET /admin/auth/captcha ::1 1726570105374  0s
+2024/09/17 18:49:57 GET /auth/captcha ::1 1726570197911  0s
+2024/09/17 18:50:01 GET /auth/captcha ::1 1726570201091  1.0355ms
+2024/09/17 18:50:08 GET /api/admin/auth/captcha 127.0.0.1 1726569615564  0s
+2024/09/17 20:02:37 POST /api/admin/tenants/add 127.0.0.1   647µs
+2024/09/17 20:03:37 POST /api/admin/tenants/add 127.0.0.1   1.2925ms
+2024/09/17 20:04:58 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3 2.8252ms
+2024/09/17 20:05:14 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 42.3702ms
+2024/09/17 20:07:16 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 43.9314ms
+2024/09/17 20:08:38 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 48.8231ms
+2024/09/17 20:09:01 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 75.2615ms
+2024/09/17 20:15:24 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 72.8036ms
+2024/09/17 20:16:23 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 81.3567ms
+2024/09/17 20:17:08 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 52.566ms
+2024/09/17 20:17:54 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 24.9097ms
+2024/09/17 20:48:04 GET /permission/menu/validate ::1 path=/pms/user  0s
+2024/09/17 20:58:34 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 75.7005ms
+2024/09/17 20:59:32 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 79.5634ms
+2024/09/17 20:59:59 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 86.6886ms
+2024/09/17 21:03:07 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 87.6853ms
+2024/09/17 21:03:39 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 87.3535ms
+2024/09/17 21:05:48 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%97&phone=16620436582&role_id=3&password=123456 13.5715ms
+2024/09/17 21:55:21 POST /api/admin/login 127.0.0.1   1.1747ms
+2024/09/17 21:55:49 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 18.1315ms
+2024/09/17 22:02:30 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 24.7081ms
+2024/09/17 22:04:26 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 21.3053ms
+2024/09/17 22:06:28 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 24.4701ms
+2024/09/17 22:07:05 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 17.8059ms
+2024/09/17 22:07:36 POST /api/admin/login 127.0.0.1  username=16620436587&password=1234567 18.3974ms
+2024/09/17 22:07:51 POST /api/admin/login 127.0.0.1  username=16620436582&password=1234567 13.9426ms
+2024/09/17 22:08:26 POST /api/admin/login 127.0.0.1  username=16620436582&password=123456 55.2916ms
+2024/09/17 22:09:21 POST /api/admin/login 127.0.0.1  username=16620436581&password=123456 22.8099ms
+2024/09/17 22:09:38 POST /api/admin/login 127.0.0.1  username=16620436582&password=123456 43.8722ms
+2024/09/17 22:10:35 POST /api/admin/login 127.0.0.1  username=16620436582&password=123456 50.8381ms
+2024/09/17 22:24:39 POST /api/admin/login 127.0.0.1  username=admin&password=123456 17.563ms
+2024/09/17 22:25:21 POST /api/admin/login 127.0.0.1  username=adminc&password=123456 15.1082ms
+2024/09/17 22:27:38 POST /api/admin/login 127.0.0.1  username=admin&password=123456 16.3492ms
+2024/09/17 22:55:38 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 121.7101ms
+2024/09/17 22:57:04 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 79.1475ms
+2024/09/17 22:59:04 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 101.6314ms
+2024/09/17 22:59:59 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 83.0423ms
+2024/09/17 23:01:20 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 122.6557ms
+2024/09/17 23:02:34 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 94.5826ms
+2024/09/17 23:05:11 POST /api/admin/tenants/add 127.0.0.1  username=%E6%9D%BE%E9%BC%A0%E5%95%86%E5%BA%972&phone=16620436582&role_id=3&password=123456 20.9518ms

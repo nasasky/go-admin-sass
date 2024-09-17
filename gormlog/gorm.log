@@ -1,0 +1,441 @@
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:19
+[7.717ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:22
+[10.748ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[36.015ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.083ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.370ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.535ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.328ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:22
+[13.048ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.409ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:22
+[11.932ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.552ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.117ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.565ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:19:39 D:/mycode/nasa-go-admin/api/permissions.go:22
+[11.988ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:21
+[16.026ms] [rows:1] SELECT count(*) FROM `user_roles_role` WHERE userId=1 and roleId=1
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:31
+[26.458ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:35
+[12.617ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/user.go:23
+[63.276ms] [rows:1] SELECT * FROM `user` WHERE id=1
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[25.091ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/user.go:24
+[20.395ms] [rows:1] SELECT * FROM `profile` WHERE userId=1
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[12.477ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[11.242ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[11.039ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/user.go:26
+[46.227ms] [rows:2] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[13.951ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:35
+[19.302ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[11.458ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:35
+[12.668ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[10.749ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[11.067ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:38
+[11.957ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:21:58 D:/mycode/nasa-go-admin/api/role.go:35
+[10.806ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:19
+[7.015ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:22
+[29.595ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.079ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.137ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.609ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.311ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.958ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:22
+[10.639ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[10.975ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:22
+[12.053ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[10.893ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.019ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:25
+[10.425ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:21:59 D:/mycode/nasa-go-admin/api/permissions.go:22
+[11.039ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:21
+[32.310ms] [rows:1] SELECT count(*) FROM `user_roles_role` WHERE userId=1 and roleId=1
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:31
+[7.942ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/user.go:23
+[46.998ms] [rows:1] SELECT * FROM `user` WHERE id=1
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/user.go:24
+[15.025ms] [rows:1] SELECT * FROM `profile` WHERE userId=1
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:35
+[48.528ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/user.go:26
+[44.593ms] [rows:2] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[20.183ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[15.030ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[16.152ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[14.695ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[16.027ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:35
+[15.181ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[14.913ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:35
+[16.862ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:24:54 D:/mycode/nasa-go-admin/api/role.go:38
+[15.482ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/role.go:38
+[13.127ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/role.go:38
+[16.114ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/role.go:35
+[13.569ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:19
+[8.623ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.561ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.271ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[17.501ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[20.037ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.232ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.583ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.512ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.048ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.050ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.078ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.430ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.750ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:24:55 D:/mycode/nasa-go-admin/api/permissions.go:22
+[33.503ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:19
+[7.944ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/role.go:72
+[5.709ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/role.go:74
+[6.207ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.923ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/role.go:77
+[12.672ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.925ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/role.go:77
+[11.852ms] [rows:11] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=2
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.107ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.444ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.496ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.562ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.949ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[15.367ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:22
+[16.245ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[16.443ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.860ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.614ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:25:15 D:/mycode/nasa-go-admin/api/permissions.go:22
+[15.249ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/auth.go:47
+[16.425ms] [rows:1] SELECT * FROM `user` WHERE username ='admin'  AND password='e10adc3949ba59abbe56e057f20f883e'
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:21
+[24.049ms] [rows:1] SELECT count(*) FROM `user_roles_role` WHERE userId=1 and roleId=1
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/user.go:23
+[25.299ms] [rows:1] SELECT * FROM `user` WHERE id=1
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/user.go:24
+[15.402ms] [rows:1] SELECT * FROM `profile` WHERE userId=1
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/user.go:26
+[15.473ms] [rows:2] SELECT * FROM `role` WHERE id IN (SELECT `roleId` FROM `user_roles_role` WHERE userId=1)
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:31
+[39.052ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:35
+[13.001ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[14.075ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[12.866ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[12.273ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[13.242ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[12.664ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:35
+[13.932ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[12.168ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:35
+[14.177ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[14.743ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[13.255ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:38
+[12.808ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:25:32 D:/mycode/nasa-go-admin/api/role.go:35
+[11.412ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:19
+[7.511ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:22
+[12.267ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.944ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.874ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[14.597ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[10.523ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.429ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:22
+[13.180ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.926ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:22
+[13.771ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.861ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.602ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.697ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:28:09 D:/mycode/nasa-go-admin/api/permissions.go:22
+[12.829ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:19
+[8.041ms] [rows:4] SELECT * FROM `permission` WHERE parentId is NULL ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.652ms] [rows:5] SELECT * FROM `permission` WHERE parentId = 9 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.921ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 14 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[12.443ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 10 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[10.456ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 11 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.341ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 12 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[8.233ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 15 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:22
+[14.623ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 6 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[13.184ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 7 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:22
+[11.900ms] [rows:3] SELECT * FROM `permission` WHERE parentId = 2 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.340ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 1 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[37.677ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 3 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:25
+[11.817ms] [rows:1] SELECT * FROM `permission` WHERE parentId = 4 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/permissions.go:22
+[11.558ms] [rows:0] SELECT * FROM `permission` WHERE parentId = 8 ORDER BY `order` Asc
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/role.go:72
+[6.265ms] [rows:1] SELECT count(*) FROM `role`
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/role.go:74
+[6.436ms] [rows:2] SELECT `role`.`id`,`role`.`code`,`role`.`name`,`role`.`enable` FROM `role` LIMIT 10
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/role.go:77
+[11.482ms] [rows:0] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=1
+
+2024/09/15 12:28:11 D:/mycode/nasa-go-admin/api/role.go:77
+[11.156ms] [rows:11] SELECT `permissionId` FROM `role_permissions_permission` WHERE roleId=2
