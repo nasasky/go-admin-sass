@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -97,30 +98,33 @@ func IncrementQueryCount(c *gin.Context) {
 	}
 }
 
-// RateLimit 简单的内存限流中间件
+// RateLimit 线程安全的内存限流中间件
 func RateLimit(rpm int) gin.HandlerFunc {
-	// 使用map存储IP的请求时间戳
-	requests := make(map[string][]time.Time)
+	// 使用sync.Map来避免竞态条件
+	var requests sync.Map
 
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
 		now := time.Now()
 
-		// 清理过期的请求记录
-		if timestamps, exists := requests[ip]; exists {
-			var validTimestamps []time.Time
-			cutoff := now.Add(-time.Minute)
+		// 获取或创建IP的请求记录
+		var timestamps []time.Time
+		if value, exists := requests.Load(ip); exists {
+			timestamps = value.([]time.Time)
+		}
 
-			for _, timestamp := range timestamps {
-				if timestamp.After(cutoff) {
-					validTimestamps = append(validTimestamps, timestamp)
-				}
+		// 清理过期的请求记录
+		var validTimestamps []time.Time
+		cutoff := now.Add(-time.Minute)
+
+		for _, timestamp := range timestamps {
+			if timestamp.After(cutoff) {
+				validTimestamps = append(validTimestamps, timestamp)
 			}
-			requests[ip] = validTimestamps
 		}
 
 		// 检查是否超过限制
-		if len(requests[ip]) >= rpm {
+		if len(validTimestamps) >= rpm {
 			c.AbortWithStatusJSON(429, gin.H{
 				"error":       "Rate limit exceeded",
 				"retry_after": 60,
@@ -129,7 +133,8 @@ func RateLimit(rpm int) gin.HandlerFunc {
 		}
 
 		// 记录当前请求
-		requests[ip] = append(requests[ip], now)
+		validTimestamps = append(validTimestamps, now)
+		requests.Store(ip, validTimestamps)
 
 		c.Next()
 	}

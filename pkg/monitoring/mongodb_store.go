@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"nasa-go-admin/mongodb"
+	"nasa-go-admin/pkg/goroutinepool"
 	"strconv"
 	"time"
 
@@ -60,13 +61,8 @@ func SaveHTTPMetric(c *gin.Context, duration float64) {
 		}
 	}
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("保存HTTP指标失败: %v", r)
-			}
-		}()
-
+	// 使用goroutine池来避免goroutine泄漏
+	goroutinepool.Submit(func() error {
 		collection := mongodb.GetCollection("admin_log_db", "logs")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -75,7 +71,8 @@ func SaveHTTPMetric(c *gin.Context, duration float64) {
 		if err != nil {
 			log.Printf("保存HTTP指标到MongoDB失败: %v", err)
 		}
-	}()
+		return err
+	})
 }
 
 // SaveBusinessMetric 保存业务指标到MongoDB
@@ -87,13 +84,7 @@ func SaveBusinessMetric(metricType string, userID string) {
 		UserID:     userID,
 	}
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("保存业务指标失败: %v", r)
-			}
-		}()
-
+	goroutinepool.Submit(func() error {
 		collection := mongodb.GetCollection("admin_log_db", "logs")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -102,7 +93,8 @@ func SaveBusinessMetric(metricType string, userID string) {
 		if err != nil {
 			log.Printf("保存业务指标到MongoDB失败: %v", err)
 		}
-	}()
+		return err
+	})
 }
 
 // SaveDatabaseMetric 保存数据库指标到MongoDB
@@ -114,13 +106,7 @@ func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 		MaxOpenConns:     maxOpenConns,
 	}
 
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				log.Printf("保存数据库指标失败: %v", r)
-			}
-		}()
-
+	goroutinepool.Submit(func() error {
 		collection := mongodb.GetCollection("admin_log_db", "logs")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -129,7 +115,8 @@ func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 		if err != nil {
 			log.Printf("保存数据库指标到MongoDB失败: %v", err)
 		}
-	}()
+		return err
+	})
 }
 
 // GetMonitoringStats 获取监控统计数据

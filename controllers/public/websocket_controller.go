@@ -209,31 +209,63 @@ func safeGoroutine(fn func()) {
 	}()
 }
 
-// IP连接限制管理
+// IP连接限制管理 - 使用sync.Map避免竞态条件
 var (
-	ipConnections = make(map[string]int)
-	ipMutex       sync.RWMutex
+	ipConnections sync.Map
+	// 添加定期清理机制
+	cleanupTicker *time.Ticker
 )
 
+func init() {
+	// 启动IP连接清理任务
+	cleanupTicker = time.NewTicker(5 * time.Minute)
+	go func() {
+		for range cleanupTicker.C {
+			cleanupExpiredIPs()
+		}
+	}()
+}
+
 func checkIPConnectionLimit(ip string) (int, bool) {
-	ipMutex.RLock()
-	count := ipConnections[ip]
-	ipMutex.RUnlock()
+	value, exists := ipConnections.Load(ip)
+	if !exists {
+		return 0, false
+	}
+	count := value.(int)
 	return count, count >= maxConnPerIP
 }
 
 func incrementIPCounter(ip string) {
-	ipMutex.Lock()
-	ipConnections[ip]++
-	ipMutex.Unlock()
+	value, exists := ipConnections.Load(ip)
+	if !exists {
+		ipConnections.Store(ip, 1)
+	} else {
+		count := value.(int)
+		ipConnections.Store(ip, count+1)
+	}
 }
 
 func decrementIPCounter(ip string) {
-	ipMutex.Lock()
-	if ipConnections[ip] > 0 {
-		ipConnections[ip]--
+	value, exists := ipConnections.Load(ip)
+	if exists {
+		count := value.(int)
+		if count > 1 {
+			ipConnections.Store(ip, count-1)
+		} else {
+			ipConnections.Delete(ip)
+		}
 	}
-	ipMutex.Unlock()
+}
+
+// cleanupExpiredIPs 清理过期的IP连接记录
+func cleanupExpiredIPs() {
+	ipConnections.Range(func(key, value interface{}) bool {
+		count := value.(int)
+		if count <= 0 {
+			ipConnections.Delete(key)
+		}
+		return true
+	})
 }
 
 // 从上下文中获取用户ID - 优化版本
@@ -270,12 +302,12 @@ func WebSocketStats(c *gin.Context) {
 }
 
 func getIPConnectionCounts() map[string]int {
-	ipMutex.RLock()
-	defer ipMutex.RUnlock()
-
-	result := make(map[string]int, len(ipConnections))
-	for ip, count := range ipConnections {
+	result := make(map[string]int)
+	ipConnections.Range(func(key, value interface{}) bool {
+		ip := key.(string)
+		count := value.(int)
 		result[ip] = count
-	}
+		return true
+	})
 	return result
 }

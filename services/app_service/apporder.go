@@ -43,7 +43,10 @@ const (
 )
 
 type OrderService struct {
-	redisClient *redis.Client
+	redisClient      *redis.Client
+	dbPoolManager    *DatabasePoolManager
+	queryOptimizer   *QueryOptimizer
+	metricsCollector *MetricsCollector
 }
 
 // GetOrderDetail 获取订单详情
@@ -169,35 +172,112 @@ func (s *OrderService) getGoodsDetailsBatch(goodsIds []int) (map[int]app_model.A
 
 // CreateOrder 创建订单
 func (s *OrderService) CreateOrder(c *gin.Context, uid int, params inout.CreateOrderReq) (string, error) {
+	// 创建请求计时器
+	timer := NewRequestTimer("create_order")
+	defer func() {
+		if r := recover(); r != nil {
+			timer.FinishWithError("panic")
+			log.Printf("创建订单时发生panic: %v", r)
+			panic(r)
+		}
+	}()
+
 	// 确保订单取消工作器已启动
 	s.ensureOrderCancellationWorkerStarted()
 
-	// 1. 使用分布式锁或Redis锁防止用户短时间内重复提交
-	lockKey := fmt.Sprintf("create_order:user:%d:goods:%d", uid, params.GoodsId)
-	if acquired, err := s.acquireLock(lockKey, 5*time.Second); err != nil || !acquired {
-		return "", fmt.Errorf("操作过于频繁，请稍后再试")
+	// 1. 防重复提交：使用多重锁机制
+	// 用户级锁：防止同一用户快速重复下单
+	userLockKey := fmt.Sprintf("create_order:user:%d", uid)
+	if acquired, err := s.acquireLock(userLockKey, 3*time.Second); err != nil || !acquired {
+		timer.FinishWithError("lock_timeout")
+		return "", fmt.Errorf("您的操作过于频繁，请稍后再试")
 	}
-	defer s.releaseLock(lockKey)
+	defer s.releaseLock(userLockKey)
 
-	// 2. 开始事务
-	tx := db.Dao.Begin()
+	// 商品库存锁：防止库存超卖
+	goodsLockKey := fmt.Sprintf("goods_stock:%d", params.GoodsId)
+	if acquired, err := s.acquireLock(goodsLockKey, 10*time.Second); err != nil || !acquired {
+		timer.FinishWithError("lock_timeout")
+		return "", fmt.Errorf("商品库存正在更新，请稍后再试")
+	}
+	defer s.releaseLock(goodsLockKey)
+
+	// 幂等性检查：防止重复订单
+	idempotencyKey := fmt.Sprintf("order_idempotency:%d:%d:%s", uid, params.GoodsId, time.Now().Format("20060102"))
+	if exists, err := s.checkIdempotency(idempotencyKey, 24*time.Hour); err != nil {
+		log.Printf("幂等性检查失败: %v", err)
+	} else if exists {
+		timer.FinishWithError("duplicate_order")
+		return "", fmt.Errorf("请勿重复下单，如有问题请联系客服")
+	}
+
+	// 2. 开始事务（带重试机制）
+	var tx *gorm.DB
+
+	if s.dbPoolManager != nil {
+		err := s.dbPoolManager.ExecuteWithRetry(func(database *gorm.DB) error {
+			tx = database.Begin()
+			if tx.Error != nil {
+				return tx.Error
+			}
+			return nil
+		}, 3)
+		if err != nil {
+			timer.FinishWithError("database")
+			return "", fmt.Errorf("开始事务失败: %w", err)
+		}
+	} else {
+		// 降级方案：直接使用全局数据库连接
+		if db.Dao == nil {
+			timer.FinishWithError("database")
+			return "", fmt.Errorf("数据库连接未初始化")
+		}
+		tx = db.Dao.Begin()
+		if tx.Error != nil {
+			timer.FinishWithError("database")
+			return "", fmt.Errorf("开始事务失败: %w", tx.Error)
+		}
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			orderMetrics.RecordError("transaction_rollback")
+			timer.FinishWithError("panic")
+			panic(r)
 		}
 	}()
 
 	// 3. 检查并锁定商品记录
 	var goods app_model.AppGoods
-	if err := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", params.GoodsId).First(&goods).Error; err != nil {
-		tx.Rollback()
-		return "", fmt.Errorf("商品不存在或已下架: %w", err)
+	start := time.Now()
+	queryErr := tx.Set("gorm:query_option", "FOR UPDATE").Where("id = ?", params.GoodsId).First(&goods).Error
+	duration := time.Since(start)
+
+	// 记录慢查询
+	if s.queryOptimizer != nil && duration > 500*time.Millisecond {
+		s.queryOptimizer.LogSlowQuery(fmt.Sprintf("SELECT * FROM app_goods WHERE id = %d FOR UPDATE", params.GoodsId), duration)
 	}
 
-	// 4. 检查库存是否充足
+	if queryErr != nil {
+		tx.Rollback()
+		orderMetrics.RecordError("database")
+		timer.FinishWithError("database")
+		return "", fmt.Errorf("商品不存在或已下架: %w", queryErr)
+	}
+
+	// 4. 二次库存检查 - 在事务中再次验证（防止并发问题）
 	if goods.Stock < params.Num {
 		tx.Rollback()
-		return "", fmt.Errorf("商品库存不足，当前库存: %d", goods.Stock)
+		timer.FinishWithError("insufficient_stock")
+		return "", fmt.Errorf("商品库存不足，当前库存: %d，需要: %d", goods.Stock, params.Num)
+	}
+
+	// 验证商品状态和可用性
+	if goods.Status != "1" {
+		tx.Rollback()
+		timer.FinishWithError("goods_unavailable")
+		return "", fmt.Errorf("商品已下架或不可购买")
 	}
 
 	// 5. 计算订单总价
@@ -286,13 +366,38 @@ func (s *OrderService) CreateOrder(c *gin.Context, uid int, params inout.CreateO
 		}()
 	}
 
-	// 11. 更新商品库存 - 使用原子操作
-	if err := tx.Model(&app_model.AppGoods{}).
-		Where("id = ? AND stock >= ?", params.GoodsId, params.Num).
-		Update("stock", gorm.Expr("stock - ?", params.Num)).Error; err != nil {
-		tx.Rollback()
-		return "", fmt.Errorf("更新库存失败: %w", err)
+	// 11. 原子性扣减库存 - 使用乐观锁防止超卖
+	stockUpdateStart := time.Now()
+	stockResult := tx.Model(&app_model.AppGoods{}).
+		Where("id = ? AND stock >= ? AND status = ? AND isdelete != 1", params.GoodsId, params.Num, "1").
+		Updates(map[string]interface{}{
+			"stock":       gorm.Expr("stock - ?", params.Num),
+			"update_time": time.Now(),
+		})
+
+	stockUpdateDuration := time.Since(stockUpdateStart)
+	if s.queryOptimizer != nil && stockUpdateDuration > 200*time.Millisecond {
+		s.queryOptimizer.LogSlowQuery(
+			fmt.Sprintf("UPDATE app_goods SET stock = stock - %d WHERE id = %d AND stock >= %d",
+				params.Num, params.GoodsId, params.Num),
+			stockUpdateDuration)
 	}
+
+	if stockResult.Error != nil {
+		tx.Rollback()
+		orderMetrics.RecordError("database")
+		timer.FinishWithError("database")
+		return "", fmt.Errorf("扣减库存失败: %w", stockResult.Error)
+	}
+
+	// 检查是否成功更新了库存（防止并发导致的库存不足）
+	if stockResult.RowsAffected == 0 {
+		tx.Rollback()
+		timer.FinishWithError("stock_conflict")
+		return "", fmt.Errorf("库存扣减失败，可能库存不足或商品状态已变更，请刷新页面重试")
+	}
+
+	log.Printf("✅ 成功扣减商品 %d 库存 %d 件，剩余库存: %d", params.GoodsId, params.Num, goods.Stock-params.Num)
 
 	// 【新增】12. 更新商家收入统计数据
 	if err := s.updateMerchantRevenueStats(tx, goods.TenantsId, &order, goods.GoodsName, "create"); err != nil {
@@ -313,15 +418,25 @@ func (s *OrderService) CreateOrder(c *gin.Context, uid int, params inout.CreateO
 		if err := s.scheduleOrderCancellation(orderNo, expireTime); err != nil {
 			log.Printf("警告: 无法将订单 %s 添加到取消队列: %v", orderNo, err)
 			// 如果Redis不可用，使用备用方案
-			go func() {
+			go func(orderNo string) {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("备用计时器检查订单 %s 时发生panic: %v", orderNo, r)
+					}
+				}()
+
 				time.Sleep(15 * time.Minute)
 				log.Printf("使用备用计时器检查订单: %s", orderNo)
 				s.checkAndCancelOrder(orderNo)
-			}()
+			}(orderNo)
 		}
 	}
 
-	// 15. 返回订单号和状态信息
+	// 15. 记录业务指标和完成计时
+	orderMetrics.RecordBusinessEvent("order_created")
+	timer.Finish(true)
+
+	// 16. 返回订单号和状态信息
 	return orderNo, nil
 }
 
@@ -709,7 +824,14 @@ func (s *OrderService) startOrderCancellationWorker() {
 
 				// 处理订单取消
 				log.Printf("开始处理过期订单: %s", orderNo)
-				go s.checkAndCancelOrder(orderNo) // 使用goroutine避免阻塞主循环
+				go func(orderNo string) {
+					defer func() {
+						if r := recover(); r != nil {
+							log.Printf("处理过期订单 %s 时发生panic: %v", orderNo, r)
+						}
+					}()
+					s.checkAndCancelOrder(orderNo)
+				}(orderNo) // 使用goroutine避免阻塞主循环
 			}
 
 			// 即使没有订单需要处理，也不要频繁检查
@@ -743,7 +865,14 @@ func (s *OrderService) checkExpiredOrdersInDatabase() {
 
 		for _, order := range expiredOrders {
 			log.Printf("处理数据库中的过期订单: %s", order.No)
-			go s.checkAndCancelOrder(order.No)
+			go func(orderNo string) {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("处理数据库中的过期订单 %s 时发生panic: %v", orderNo, r)
+					}
+				}()
+				s.checkAndCancelOrder(orderNo)
+			}(order.No)
 		}
 	}
 }
@@ -818,6 +947,48 @@ func (s *OrderService) releaseLock(key string) {
 	s.deleteLockIdentifier(key)
 }
 
+// checkIdempotency 检查幂等性，防止重复操作
+func (s *OrderService) checkIdempotency(key string, expiration time.Duration) (bool, error) {
+	if s.redisClient == nil {
+		// Redis不可用时，降级为数据库检查
+		return s.checkIdempotencyFromDB(key)
+	}
+
+	ctx := context.Background()
+
+	// 检查Redis中是否存在该key
+	exists, err := s.redisClient.Exists(ctx, key).Result()
+	if err != nil {
+		log.Printf("检查幂等性失败: %v", err)
+		// Redis出错时，降级为数据库检查
+		return s.checkIdempotencyFromDB(key)
+	}
+
+	if exists > 0 {
+		return true, nil // 已存在，表示重复操作
+	}
+
+	// 设置幂等性标记
+	err = s.redisClient.SetEx(ctx, key, "1", expiration).Err()
+	if err != nil {
+		log.Printf("设置幂等性标记失败: %v", err)
+		return false, err
+	}
+
+	return false, nil // 不存在，可以继续操作
+}
+
+// checkIdempotencyFromDB 从数据库检查幂等性（降级方案）
+func (s *OrderService) checkIdempotencyFromDB(key string) (bool, error) {
+	// 这里可以实现基于数据库的幂等性检查
+	// 例如检查相同用户、商品、时间范围内是否有订单
+	log.Printf("使用数据库降级方案检查幂等性: %s", key)
+
+	// 简单实现：总是返回false，允许操作继续
+	// 实际项目中应该实现真正的数据库检查逻辑
+	return false, nil
+}
+
 // deductWalletAndRecordTransaction 扣除用户余额并记录交易
 func (s *OrderService) deductWalletAndRecordTransaction(tx *gorm.DB, uid int, amount float64, allAmount float64) error {
 	// 使用乐观锁保证更新的原子性
@@ -857,7 +1028,7 @@ func (s *OrderService) checkAndCancelOrder(orderNo string) {
 
 	// 获取分布式锁，防止并发操作同一订单
 	lockKey := fmt.Sprintf("cancel_order:%s", orderNo)
-	acquired, err := s.acquireLock(lockKey, 5*time.Second)
+	acquired, err := s.acquireLock(lockKey, 10*time.Second) // 增加锁定时间
 	if err != nil {
 		log.Printf("获取锁失败，无法取消订单 %s: %v", orderNo, err)
 		return
@@ -866,7 +1037,9 @@ func (s *OrderService) checkAndCancelOrder(orderNo string) {
 		log.Printf("无法获取锁，订单 %s 可能正在被其他进程处理", orderNo)
 		return
 	}
-	defer s.releaseLock(lockKey)
+	defer func() {
+		s.releaseLock(lockKey)
+	}()
 
 	// 开始一个新的事务
 	tx := db.Dao.Begin()
@@ -974,9 +1147,41 @@ func (s *OrderService) deleteLockIdentifier(key string) {
 
 // NewOrderService 创建并返回 OrderService 实例
 func NewOrderService(redisClient *redis.Client) *OrderService {
+	// 初始化查询优化器
+	queryOptimizer := NewQueryOptimizer()
+
+	// 初始化指标收集器
+	metricsCollector := NewMetricsCollector()
+	metricsCollector.Start()
+
 	service := &OrderService{
-		redisClient: redisClient,
+		redisClient:      redisClient,
+		dbPoolManager:    nil, // 延迟初始化，避免 nil 指针
+		queryOptimizer:   queryOptimizer,
+		metricsCollector: metricsCollector,
 	}
+
+	// 延迟初始化数据库连接池管理器
+	go func() {
+		// 等待数据库连接建立
+		for i := 0; i < 30; i++ { // 最多等待30秒
+			if db.Dao != nil {
+				dbPoolManager, err := NewDatabasePoolManager(db.Dao, nil)
+				if err != nil {
+					log.Printf("初始化数据库连接池管理器失败: %v", err)
+				} else {
+					service.dbPoolManager = dbPoolManager
+					log.Printf("数据库连接池管理器初始化成功")
+				}
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+
+		if service.dbPoolManager == nil {
+			log.Printf("警告: 数据库连接池管理器初始化失败，将使用默认数据库连接")
+		}
+	}()
 
 	// 自动启动订单取消工作器
 	workerMutex.Lock()
@@ -986,57 +1191,13 @@ func NewOrderService(redisClient *redis.Client) *OrderService {
 	}
 	workerMutex.Unlock()
 
+	log.Printf("订单服务已初始化，包含监控和优化功能")
 	return service
 }
 
-// UpdateOrderStatus 示例：在订单状态变更的地假设我们有一个函数用于更新订单状态
+// UpdateOrderStatus 使用新的状态管理器更新订单状态
 func (s *OrderService) UpdateOrderStatus(orderNo string, newStatus string) error {
-	tx := db.Dao.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 查询订单
-	var order app_model.AppOrder
-	if err := tx.Where("no = ?", orderNo).First(&order).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 记录旧状态
-	oldStatus := order.Status
-
-	// 更新订单状态
-	order.Status = newStatus
-	if err := tx.Save(&order).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 获取商品信息
-	var goods app_model.AppGoods
-	if err := tx.Where("id = ?", order.GoodsId).First(&goods).Error; err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 更新商家收入统计数据，传入旧状态
-	if err := s.updateMerchantRevenueStats(tx, goods.TenantsId, &order, goods.GoodsName, "update", oldStatus); err != nil {
-		tx.Rollback()
-		return err
-	}
-	if err := tx.Commit().Error; err != nil {
-		return err
-	}
-
-	// 发送WebSocket订单状态更新通知
-	wsService := public_service.GetWebSocketService()
-	err := wsService.SendOrderNotification(order.UserId, orderNo, newStatus, goods.GoodsName)
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit().Error
+	// 使用新的状态管理器来更新订单状态
+	statusManager := GetServiceInitializer().GetOrderStatusManager()
+	return statusManager.UpdateOrderStatus(orderNo, OrderStatus(newStatus), "system", "系统更新")
 }
