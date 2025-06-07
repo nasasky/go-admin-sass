@@ -1,0 +1,39 @@
+# Config file for Air
+
+[build]
+# Binary name
+bin = "tmp/main"  # 移除 .exe 扩展名
+# Command to build the project
+cmd = "go build -o ./tmp/main ."  # 修改构建命令
+# Working directory
+work_dir = "."
+# Patterns to watch
+include_ext = ["go", "tpl", "tmpl", "html"]
+# Patterns to exclude
+exclude_dir = ["tmp", "vendor", "node_modules", "frontend/dist"]
+# Patterns to exclude
+exclude_file = ["air.toml"]
+# Build delay
+delay = 2000
+# Stop on build error
+stop_on_error = true
+
+[log]
+# Log level
+level = "debug"
+
+[run]
+# Command to run the project
+cmd = "./tmp/main"  # 移除 .exe 扩展名
+# Working directory
+work_dir = "."
+# Patterns to watch
+include_ext = ["go", "tpl", "tmpl", "html"]
+# Patterns to exclude
+exclude_dir = ["tmp", "vendor", "node_modules", "frontend/dist"]
+# Patterns to exclude
+exclude_file = ["air.toml"]
+# Run delay
+delay = 2000
+# Stop on run error
+stop_on_error = true

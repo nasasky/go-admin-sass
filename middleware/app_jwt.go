@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"nasa-go-admin/api"
-	"nasa-go-admin/utils"
+	"nasa-go-admin/pkg/jwt"
+
+	"github.com/gin-gonic/gin"
 )
 
 // JWTAuth 中间件，检查token
@@ -15,14 +16,14 @@ func JwtAPP() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		j := utils.NewJWTAPP()
+		// 去掉Bearer前缀
 		if len(token) > 7 && token[:7] == "Bearer " {
 			token = token[7:]
 		}
 		// parseToken 解析token包含的信息
-		claims, err := j.ParseToken(token)
+		claims, err := jwt.ParseAppToken(token)
 		if err != nil {
-			if err == utils.TokenAppExpired {
+			if err == jwt.ErrTokenExpired {
 				api.Resp.Err(c, 10002, "授权已过期")
 				c.Abort()
 				return

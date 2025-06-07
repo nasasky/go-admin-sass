@@ -2,9 +2,12 @@ package utils
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt/v4"
+	"fmt"
 	"os"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // 一些常量
@@ -17,7 +20,9 @@ var (
 
 // CustomClaims 载荷，可以加一些自己需要的信息
 type CustomClaims struct {
-	UID int
+	UID  int
+	RID  int
+	TYPE int
 	jwt.RegisteredClaims
 }
 
@@ -29,7 +34,7 @@ type JWT struct {
 // NewJWT 新建一个jwt实例
 func NewJWT() *JWT {
 	return &JWT{
-		SigningKey:[]byte(os.Getenv("JWT_SIGNING_KEY")),
+		SigningKey: []byte(os.Getenv("JWT_SIGNING_KEY")),
 	}
 }
 
@@ -40,20 +45,25 @@ func (j *JWT) createToken(claims CustomClaims) (string, error) {
 }
 
 // GenerateToken 生成令牌
-func GenerateToken( uId int) string {
+func GenerateToken(uId int, rID int, tYPE int) string {
+	fmt.Print(rID)
 	j := NewJWT()
 	type cus struct {
-		UID int
+		UID  int
+		RID  int
+		TYPE int
 		jwt.RegisteredClaims
 	}
 	claims := cus{
 		uId,
+		rID,
+		tYPE,
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		},
 	}
 
-	token, err :=  j.createToken(CustomClaims(claims))
+	token, err := j.createToken(CustomClaims(claims))
 	if err != nil {
 
 		return err.Error()
@@ -75,7 +85,7 @@ func (j *JWT) RefreshToken(tokenString string) (string, error) {
 	}
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		jwt.TimeFunc = time.Now
-		claims.ExpiresAt =jwt.NewNumericDate(time.Now().Add(time.Hour))
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour))
 		return j.createToken(*claims)
 	}
 	return "", TokenInvalid
@@ -109,3 +119,25 @@ func (j *JWT) ParseToken(tokenString string) (*CustomClaims, error) {
 	return nil, TokenInvalid
 }
 
+// GetUserIdFromClaims 从JWT令牌中提取用户ID
+func GetUserIdFromClaims(c *gin.Context) (int, error) {
+	// 从上下文中获取claims
+	claims, exists := c.Get("claims")
+	if !exists {
+		return 0, errors.New("未找到JWT声明")
+	}
+
+	// 类型断言转换为JWT声明
+	claimsMap, ok := claims.(jwt.MapClaims)
+	if !ok {
+		return 0, errors.New("无效的JWT声明类型")
+	}
+
+	// 从声明中提取用户ID
+	userIDFloat, ok := claimsMap["user_id"].(float64)
+	if !ok {
+		return 0, errors.New("未找到用户ID或类型无效")
+	}
+
+	return int(userIDFloat), nil
+}

@@ -1,0 +1,12 @@
+mongodb:
+  databases:
+    admin_log_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        logs: "logs"
+        another_collection: "another_collection"
+    app_log_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        logs: "logs"
+        another_collection: "another_collection"

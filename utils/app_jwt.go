@@ -2,9 +2,10 @@ package utils
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt/v4"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 // 一些常量
@@ -16,10 +17,6 @@ var (
 )
 
 // CustomClaims 载荷，可以加一些自己需要的信息
-type CustomAppClaims struct {
-	UID int
-	jwt.RegisteredClaims
-}
 
 // JWT 签名结构
 type JWTAPP struct {
@@ -40,14 +37,18 @@ func (j *JWT) createTokenApp(claims CustomClaims) (string, error) {
 }
 
 // GenerateToken 生成令牌
-func GenerateTokenApp(uId int) string {
+func GenerateTokenApp(uId int, rID int, tYPE int) string {
 	j := NewJWT()
 	type cus struct {
-		UID int
+		UID  int
+		RID  int
+		TYPE int
 		jwt.RegisteredClaims
 	}
 	claims := cus{
 		uId,
+		rID,
+		tYPE,
 		jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 		},

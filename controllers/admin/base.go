@@ -1,38 +1,22 @@
 package admin
 
 import (
+	"nasa-go-admin/pkg/response"
+
 	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
+// Resp 为了兼容性保留，但推荐直接使用 response 包
 var Resp = &rps{}
 
-type rps struct {
-	Code      int         `json:"code"`
-	Message   string      `json:"message"`
-	Data      interface{} `json:"data,omitempty"`
-	Error     string      `json:"error,omitempty"`
-	OriginUrl string      `json:"originUrl"`
-}
+type rps struct{}
 
+// Succ 成功响应 - 兼容旧接口
 func (rps) Succ(c *gin.Context, data interface{}) {
-	resp := rps{
-		Code:      200,
-		Message:   "OK",
-		Data:      data,
-		OriginUrl: c.Request.URL.Path,
-	}
-	c.Set("succ_response", resp)
-	c.JSON(http.StatusOK, resp)
+	response.Success(c, data)
 }
 
-func (rps) Err(c *gin.Context, ErrCode int, messge string) {
-	resp := rps{
-		Code:      ErrCode,
-		Error:     "error some",
-		Message:   messge,
-		OriginUrl: c.Request.URL.Path,
-	}
-	c.Set("err_response", resp)
-	c.JSON(http.StatusOK, resp)
+// Err 错误响应 - 兼容旧接口
+func (rps) Err(c *gin.Context, errCode int, message string) {
+	response.Error(c, errCode, message)
 }

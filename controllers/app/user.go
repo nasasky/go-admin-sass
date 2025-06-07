@@ -1,9 +1,10 @@
 package app
 
 import (
-	"github.com/gin-gonic/gin"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/services/app_service"
+
+	"github.com/gin-gonic/gin"
 )
 
 var userService = &app_service.UserService{}
@@ -45,4 +46,46 @@ func Login(c *gin.Context) {
 		return
 	}
 	Resp.Succ(c, userApp)
+}
+
+// GetUserInfo
+func GetUserInfo(c *gin.Context) {
+	var uid, _ = c.Get("uid")
+	user, err := userService.GetUserInfo(uid.(int))
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+	Resp.Succ(c, user)
+}
+
+// Refresh
+func Refresh(c *gin.Context) {
+	var uid, _ = c.Get("uid")
+	token, err := userService.Refresh(uid.(int))
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+	Resp.Succ(c, token)
+}
+
+// UpdateUserInfo
+func UpdateUserInfo(c *gin.Context) {
+	var params inout.UpdateUserAppReq
+	if err := c.ShouldBind(&params); err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+
+	var uid, _ = c.Get("uid")
+	params.Id = uid.(int)
+
+	// Update user information
+	err := userService.UpdateUserInfo(params.Id, params.Username, params.Phone, params.NickName, params.Address, params.Email, params.Gender)
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+	Resp.Succ(c, nil)
 }

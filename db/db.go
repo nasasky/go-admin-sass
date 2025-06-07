@@ -1,13 +1,14 @@
 package db
 
 import (
-	"gorm.io/driver/mysql"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var Dao *gorm.DB
@@ -47,8 +48,10 @@ func Init() {
 	if err != nil {
 		log.Fatalf("openDb.DB error is  %s", err.Error())
 	}
-	dbCon.SetMaxIdleConns(3)
-	dbCon.SetMaxOpenConns(10)
-	dbCon.SetConnMaxLifetime(time.Hour)
+	// 优化连接池配置
+	dbCon.SetMaxIdleConns(20)                  // 增加空闲连接数
+	dbCon.SetMaxOpenConns(100)                 // 增加最大连接数
+	dbCon.SetConnMaxLifetime(time.Hour)        // 连接最大生命周期
+	dbCon.SetConnMaxIdleTime(30 * time.Minute) // 空闲连接最大生命周期
 	Dao = openDb
 }

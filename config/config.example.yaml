@@ -1,0 +1,72 @@
+# 服务器配置
+server:
+  port: "8801"
+  mode: "debug"  # debug, release, test
+  read_timeout: "30s"
+  write_timeout: "30s"
+
+# 数据库配置
+database:
+  driver: "mysql"
+  dsn: "user:password@tcp(localhost:3306)/nasa_admin?charset=utf8mb4&parseTime=True&loc=Local"
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: "1h"
+  log_level: "info"  # silent, error, warn, info
+
+# Redis配置
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+  pool_size: 10
+  dial_timeout: "5s"
+  read_timeout: "3s"
+  write_timeout: "3s"
+
+# JWT配置
+jwt:
+  signing_key: "your-secret-key-here"
+  expiry: "24h"
+  refresh_expiry: "168h"  # 7天
+  issuer: "nasa-go-admin"
+  enable_blacklist: true
+
+# MongoDB配置
+mongodb:
+  databases:
+    admin_log_db:
+      uri: "mongodb://localhost:27017/admin_logs"
+      collections:
+        logs: "request_logs"
+    app_log_db:
+      uri: "mongodb://localhost:27017/app_logs"
+      collections:
+        logs: "request_logs"
+    websocket_log_db:
+      uri: "mongodb://localhost:27017/websocket_logs"
+      collections:
+        connection_logs: "connection_logs"
+
+# 日志配置
+log:
+  level: "info"          # debug, info, warn, error
+  format: "json"         # json, text
+  output: "stdout"       # stdout, file, both
+  file_path: "logs/app.log"
+  max_size: 100          # MB
+  max_backups: 7
+  max_age: 30            # days
+
+# 安全配置
+security:
+  enable_https: false
+  tls_cert_file: ""
+  tls_key_file: ""
+  allowed_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8080"
+  trusted_proxies:
+    - "127.0.0.1"
+  rate_limit: 1000       # 每分钟请求数
+  enable_rate_limit: true 

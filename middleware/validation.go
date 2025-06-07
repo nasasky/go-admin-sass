@@ -26,12 +26,22 @@ func ValidationMiddleware(obj interface{}) gin.HandlerFunc {
 					"originUrl": c.Request.URL.Path,
 				})
 			} else {
-				c.JSON(http.StatusBadRequest, gin.H{
-					"code":      20001,
-					"message":   err.Error(),
-					"error":     "error some",
-					"originUrl": c.Request.URL.Path,
-				})
+				// 检查是否是 EOF 错误
+				if err.Error() == "EOF" {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"code":      20001,
+						"message":   "请求体为空或格式不正确",
+						"error":     "error some",
+						"originUrl": c.Request.URL.Path,
+					})
+				} else {
+					c.JSON(http.StatusBadRequest, gin.H{
+						"code":      20001,
+						"message":   err.Error(),
+						"error":     "error some",
+						"originUrl": c.Request.URL.Path,
+					})
+				}
 			}
 			c.Abort()
 			return

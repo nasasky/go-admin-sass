@@ -1,11 +1,12 @@
 package router
 
 import (
+	"nasa-go-admin/api"
+	"nasa-go-admin/middleware"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"nasa-go-admin/api"
-	"nasa-go-admin/middleware"
 )
 
 func Init(r *gin.Engine) {
@@ -18,7 +19,7 @@ func Init(r *gin.Engine) {
 		apiAdminGroup.POST("/auth/login", api.Auth.Login)
 		apiAdminGroup.GET("/auth/captcha", api.Auth.Captcha)
 
-		apiAdminGroup.Use(middleware.Jwt())
+		apiAdminGroup.Use(middleware.AdminJWTAuth())
 		apiAdminGroup.POST("/auth/logout", api.Auth.Logout)
 		apiAdminGroup.POST("/auth/password", api.Auth.Logout)
 
