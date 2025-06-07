@@ -1,0 +1,82 @@
+groups:
+  - name: nasa-go-admin-alerts
+    rules:
+      # API 响应时间告警
+      - alert: HighAPIResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API响应时间过高"
+          description: "95%的请求响应时间超过1秒，当前值: {{ $value }}秒"
+
+      # API 错误率告警
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API错误率过高"
+          description: "5xx错误率超过5%，当前值: {{ $value | humanizePercentage }}"
+
+      # 数据库连接池告警
+      - alert: DatabaseConnectionsHigh
+        expr: db_connections_in_use > 80
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "数据库连接数过高"
+          description: "数据库连接数使用过高，当前值: {{ $value }}"
+
+      # Redis 缓存命中率告警
+      - alert: LowCacheHitRate
+        expr: redis_cache_hit_rate < 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "缓存命中率过低"
+          description: "Redis缓存命中率低于80%，当前值: {{ $value | humanizePercentage }}"
+
+      # 内存使用率告警
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "内存使用率过高"
+          description: "系统内存使用率超过90%，当前值: {{ $value | humanizePercentage }}"
+
+      # CPU 使用率告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU使用率过高"
+          description: "CPU使用率超过80%，当前值: {{ $value }}%"
+
+      # 磁盘空间告警
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "磁盘空间不足"
+          description: "根分区可用空间低于10%，当前值: {{ $value | humanizePercentage }}"
+
+      # 应用服务状态告警
+      - alert: ServiceDown
+        expr: up{job="nasa-go-admin"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "NASA-Go-Admin服务停止"
+          description: "NASA-Go-Admin应用程序无响应超过1分钟" 

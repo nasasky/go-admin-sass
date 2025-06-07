@@ -1,9 +1,12 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"runtime/debug"
+	"time"
 
 	"nasa-go-admin/pkg/response"
 
@@ -111,14 +114,12 @@ func RequestID() gin.HandlerFunc {
 	}
 }
 
-// generateRequestID 生成请求ID（简单实现）
+// generateRequestID 生成请求ID（UUID实现）
 func generateRequestID() string {
-	// 在实际应用中，可以使用UUID或其他更复杂的ID生成方案
-	return fmt.Sprintf("%d", generateRandomNumber())
-}
-
-// generateRandomNumber 生成随机数（示例实现）
-func generateRandomNumber() int64 {
-	// 简单实现，实际应用中使用更好的随机数生成器
-	return int64(1000000 + (9999999 - 1000000))
+	bytes := make([]byte, 16)
+	if _, err := rand.Read(bytes); err != nil {
+		// 如果随机数生成失败，使用时间戳作为备选
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(bytes)
 }

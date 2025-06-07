@@ -8,6 +8,7 @@ import (
 	"nasa-go-admin/db"
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/pkg/jwt"
+	"nasa-go-admin/pkg/monitoring"
 	"nasa-go-admin/redis"
 	"reflect"
 	"strconv"
@@ -44,6 +45,10 @@ func (s *TenantsService) CreateUser(username, password, phone string, usertype i
 	if err != nil {
 		return nil, err
 	}
+
+	// 记录用户注册指标
+	monitoring.RecordUserRegistration()
+	monitoring.SaveBusinessMetric("user_register", newUserApp.Username)
 
 	return &newUserApp, nil
 }
@@ -132,8 +137,11 @@ func (s *TenantsService) LoginTenants(c *gin.Context, username, password string)
 
 	permissions := getPermissionListByRoleId(users.RoleId)
 
-	// 过滤掉值为空的字段
+	// 记录用户登录指标
+	monitoring.RecordUserLogin()
+	monitoring.SaveBusinessMetric("user_login", users.Username)
 
+	// 过滤掉值为空的字段
 	responseData := map[string]interface{}{
 		"user":        users,
 		"permissions": permissions,
@@ -143,7 +151,6 @@ func (s *TenantsService) LoginTenants(c *gin.Context, username, password string)
 }
 
 // Login
-
 func (s *TenantsService) Login(c *gin.Context, username, password string) (map[string]interface{}, error) {
 	var user admin_model.AdminUser
 	hashedPassword := fmt.Sprintf("%x", md5.Sum([]byte(password)))
@@ -189,6 +196,10 @@ func (s *TenantsService) Login(c *gin.Context, username, password string) (map[s
 		return nil, fmt.Errorf("failed to store user info: %v", err)
 	}
 	permissions := getPermissionListByRoleId(user.RoleId)
+
+	// 记录用户登录指标
+	monitoring.RecordUserLogin()
+	monitoring.SaveBusinessMetric("user_login", user.Username)
 
 	responseData := map[string]interface{}{
 		"user":        user,

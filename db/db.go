@@ -1,7 +1,9 @@
 package db
 
 import (
+	"database/sql"
 	"log"
+	"nasa-go-admin/pkg/monitoring"
 	"os"
 	"path/filepath"
 	"time"
@@ -54,4 +56,19 @@ func Init() {
 	dbCon.SetConnMaxLifetime(time.Hour)        // 连接最大生命周期
 	dbCon.SetConnMaxIdleTime(30 * time.Minute) // 空闲连接最大生命周期
 	Dao = openDb
+
+	// 启动数据库连接池监控
+	go startDBMonitoring(dbCon)
+}
+
+// 启动数据库连接池监控
+func startDBMonitoring(dbCon *sql.DB) {
+	ticker := time.NewTicker(30 * time.Second) // 每30秒更新一次
+	defer ticker.Stop()
+
+	for range ticker.C {
+		stats := dbCon.Stats()
+		monitoring.UpdateDBConnections(stats.InUse)
+		monitoring.SaveDatabaseMetric(stats.InUse, stats.Idle, stats.MaxOpenConnections)
+	}
 }

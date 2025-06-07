@@ -1,0 +1,42 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+scrape_configs:
+  # NASA-Go-Admin 应用监控
+  - job_name: 'nasa-go-admin'
+    static_configs:
+      - targets: ['host.docker.internal:8801']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # 系统指标监控
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  # MySQL 监控 (如果需要)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['host.docker.internal:9104']
+    scrape_interval: 10s
+    
+  # Redis 监控 (如果需要)  
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['host.docker.internal:9121']
+    scrape_interval: 10s 

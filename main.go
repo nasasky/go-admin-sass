@@ -6,12 +6,14 @@ import (
 	"nasa-go-admin/middleware"
 	"nasa-go-admin/mongodb"
 	"nasa-go-admin/pkg/cache"
+	"nasa-go-admin/pkg/monitoring"
 	"nasa-go-admin/redis"
 	"nasa-go-admin/router"
 	"nasa-go-admin/services/public_service"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func main() {
@@ -48,9 +50,16 @@ func main() {
 	app.Use(middleware.Recovery())
 	app.Use(middleware.Performance())
 
+	// 添加 Prometheus 监控中间件
+	app.Use(monitoring.PrometheusMiddleware())
+
+	// 添加监控指标端点
+	app.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	router.Init(app)
 	router.InitApp(app)
 	router.InitAdmin(app)
+	router.InitMonitoringRoutes(app)
 
 	// 启动服务
 	if err := app.Run(":8801"); err != nil {
