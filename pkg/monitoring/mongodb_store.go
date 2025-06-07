@@ -6,6 +6,7 @@ import (
 	"nasa-go-admin/mongodb"
 	"nasa-go-admin/pkg/goroutinepool"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -40,6 +41,20 @@ type DatabaseMetric struct {
 	MaxOpenConns     int       `bson:"max_open_conns"`
 }
 
+// getDatabaseName 根据接口路径获取合适的数据库名称
+func getDatabaseName(path string) string {
+	// 只有管理后台接口才存储到admin_log_db
+	if strings.HasPrefix(path, "/api/admin/") {
+		return "admin_log_db"
+	}
+	// 应用接口存储到app_log_db
+	if strings.HasPrefix(path, "/api/app/") {
+		return "app_log_db"
+	}
+	// 其他接口存储到default_log_db
+	return "default_log_db"
+}
+
 // SaveHTTPMetric 保存HTTP指标到MongoDB
 func SaveHTTPMetric(c *gin.Context, duration float64) {
 	metric := HTTPMetric{
@@ -61,9 +76,12 @@ func SaveHTTPMetric(c *gin.Context, duration float64) {
 		}
 	}
 
+	// 根据接口路径选择数据库
+	databaseName := getDatabaseName(c.Request.URL.Path)
+
 	// 使用goroutine池来避免goroutine泄漏
 	goroutinepool.Submit(func() error {
-		collection := mongodb.GetCollection("admin_log_db", "logs")
+		collection := mongodb.GetCollection(databaseName, "logs")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -75,7 +93,7 @@ func SaveHTTPMetric(c *gin.Context, duration float64) {
 	})
 }
 
-// SaveBusinessMetric 保存业务指标到MongoDB
+// SaveBusinessMetric 保存业务指标到MongoDB (存储到专门的业务指标数据库)
 func SaveBusinessMetric(metricType string, userID string) {
 	metric := BusinessMetric{
 		Timestamp:  time.Now(),
@@ -85,7 +103,7 @@ func SaveBusinessMetric(metricType string, userID string) {
 	}
 
 	goroutinepool.Submit(func() error {
-		collection := mongodb.GetCollection("admin_log_db", "logs")
+		collection := mongodb.GetCollection("business_metrics_db", "metrics")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -97,7 +115,7 @@ func SaveBusinessMetric(metricType string, userID string) {
 	})
 }
 
-// SaveDatabaseMetric 保存数据库指标到MongoDB
+// SaveDatabaseMetric 保存数据库指标到MongoDB (存储到专门的系统指标数据库)
 func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 	metric := DatabaseMetric{
 		Timestamp:        time.Now(),
@@ -107,7 +125,7 @@ func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 	}
 
 	goroutinepool.Submit(func() error {
-		collection := mongodb.GetCollection("admin_log_db", "logs")
+		collection := mongodb.GetCollection("system_metrics_db", "metrics")
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
@@ -121,7 +139,6 @@ func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 
 // GetMonitoringStats 获取监控统计数据
 func GetMonitoringStats(timeRange string) (map[string]interface{}, error) {
-	collection := mongodb.GetCollection("admin_log_db", "logs")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -146,25 +163,28 @@ func GetMonitoringStats(timeRange string) (map[string]interface{}, error) {
 		},
 	}
 
-	// 统计HTTP请求
+	// 从管理后台日志数据库统计HTTP请求
+	adminCollection := mongodb.GetCollection("admin_log_db", "logs")
 	httpFilter := filter
 	httpFilter["method"] = bson.M{"$exists": true}
-	httpCount, _ := collection.CountDocuments(ctx, httpFilter)
+	httpCount, _ := adminCollection.CountDocuments(ctx, httpFilter)
 
-	// 统计用户登录
+	// 从业务指标数据库统计用户登录
+	businessCollection := mongodb.GetCollection("business_metrics_db", "metrics")
 	loginFilter := filter
 	loginFilter["metric_type"] = "user_login"
-	loginCount, _ := collection.CountDocuments(ctx, loginFilter)
+	loginCount, _ := businessCollection.CountDocuments(ctx, loginFilter)
 
 	// 统计用户注册
 	registerFilter := filter
 	registerFilter["metric_type"] = "user_register"
-	registerCount, _ := collection.CountDocuments(ctx, registerFilter)
+	registerCount, _ := businessCollection.CountDocuments(ctx, registerFilter)
 
-	// 获取最新的数据库指标
+	// 从系统指标数据库获取最新的数据库指标
+	systemCollection := mongodb.GetCollection("system_metrics_db", "metrics")
 	dbFilter := bson.M{"connections_in_use": bson.M{"$exists": true}}
 	var latestDbMetric DatabaseMetric
-	err := collection.FindOne(ctx, dbFilter, nil).Decode(&latestDbMetric)
+	err := systemCollection.FindOne(ctx, dbFilter, nil).Decode(&latestDbMetric)
 	if err != nil {
 		log.Printf("获取数据库指标失败: %v", err)
 	}
@@ -173,16 +193,16 @@ func GetMonitoringStats(timeRange string) (map[string]interface{}, error) {
 		"timeRange": timeRange,
 		"timestamp": now,
 		"stats": map[string]interface{}{
-			"http_requests":  httpCount,
-			"user_logins":    loginCount,
-			"user_registers": registerCount,
-			"db_connections": latestDbMetric.ConnectionsInUse,
-			"db_max_conns":   latestDbMetric.MaxOpenConns,
+			"admin_http_requests": httpCount,
+			"user_logins":         loginCount,
+			"user_registers":      registerCount,
+			"db_connections":      latestDbMetric.ConnectionsInUse,
+			"db_max_conns":        latestDbMetric.MaxOpenConns,
 		},
 	}, nil
 }
 
-// GetRecentHTTPRequests 获取最近的HTTP请求
+// GetRecentHTTPRequests 获取最近的HTTP请求 (只从管理后台日志数据库获取)
 func GetRecentHTTPRequests(limit int64) ([]HTTPMetric, error) {
 	collection := mongodb.GetCollection("admin_log_db", "logs")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

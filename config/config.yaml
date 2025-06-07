@@ -10,3 +10,15 @@ mongodb:
       collections:
         logs: "logs"
         another_collection: "another_collection"
+    business_metrics_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        metrics: "metrics"
+    system_metrics_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        metrics: "metrics"
+    default_log_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        logs: "logs"

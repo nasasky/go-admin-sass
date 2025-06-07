@@ -43,6 +43,18 @@ mongodb:
       uri: "mongodb://localhost:27017/app_logs"
       collections:
         logs: "request_logs"
+    business_metrics_db:
+      uri: "mongodb://localhost:27017/business_metrics"
+      collections:
+        metrics: "metrics"
+    system_metrics_db:
+      uri: "mongodb://localhost:27017/system_metrics"
+      collections:
+        metrics: "metrics"
+    default_log_db:
+      uri: "mongodb://localhost:27017/default_logs"
+      collections:
+        logs: "request_logs"
     websocket_log_db:
       uri: "mongodb://localhost:27017/websocket_logs"
       collections:

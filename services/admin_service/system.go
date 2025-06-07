@@ -18,16 +18,24 @@ import (
 // SystemService 系统服务
 type SystemService struct{}
 
-// GetSystemLog 从 MongoDB 中读取日志数据
+// GetSystemLog 从 MongoDB 中读取所有日志数据
 func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName string) (interface{}, error) {
 	collection := mongodb.GetCollection(collectionName, "logs")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	// 构建查询条件
 	filter := bson.M{}
 	if req.Keyword != "" {
-		filter["message"] = bson.M{"$regex": req.Keyword, "$options": "i"}
+		// 扩展关键词搜索，支持多个字段
+		filter["$or"] = []bson.M{
+			{"username": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"path": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"method": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"client_ip": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"user_agent": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"response_message": bson.M{"$regex": req.Keyword, "$options": "i"}},
+		}
 	}
 
 	// 设置默认分页参数
@@ -58,14 +66,177 @@ func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName s
 		return nil, err
 	}
 
+	// 添加一些统计信息
+	stats := s.calculateLogStats(logs)
+
 	// 构造返回结果
 	response := map[string]interface{}{
-		"total":     total,
-		"page":      req.Page,
-		"page_size": req.PageSize,
-		"items":     logs,
+		"total":      total,
+		"page":       req.Page,
+		"page_size":  req.PageSize,
+		"items":      logs,
+		"stats":      stats,
+		"query_time": time.Now().Format("2006-01-02 15:04:05"),
+		"database":   collectionName,
 	}
+
 	return response, nil
+}
+
+// calculateLogStats 计算日志统计信息
+func (s *SystemService) calculateLogStats(logs []bson.M) map[string]interface{} {
+	stats := map[string]interface{}{
+		"total_requests":   len(logs),
+		"unique_users":     0,
+		"unique_ips":       0,
+		"methods":          make(map[string]int),
+		"status_codes":     make(map[int]int),
+		"paths":            make(map[string]int),
+		"avg_latency_ms":   0.0,
+		"total_latency_ms": 0.0,
+		"max_latency_ms":   0.0,
+		"min_latency_ms":   99999.0,
+		"error_count":      0,
+		"success_count":    0,
+	}
+
+	uniqueUsers := make(map[string]bool)
+	uniqueIPs := make(map[string]bool)
+	methods := make(map[string]int)
+	statusCodes := make(map[int]int)
+	paths := make(map[string]int)
+
+	var totalLatency float64 = 0
+	var maxLatency float64 = 0
+	var minLatency float64 = 99999
+	var errorCount int = 0
+	var successCount int = 0
+
+	for _, log := range logs {
+		// 统计用户
+		if userID, ok := log["user_id"].(string); ok && userID != "" {
+			uniqueUsers[userID] = true
+		}
+
+		// 统计IP
+		if clientIP, ok := log["client_ip"].(string); ok && clientIP != "" {
+			uniqueIPs[clientIP] = true
+		}
+
+		// 统计HTTP方法
+		if method, ok := log["method"].(string); ok {
+			methods[method]++
+		}
+
+		// 统计状态码
+		if statusCode, ok := log["status_code"].(int32); ok {
+			statusCodes[int(statusCode)]++
+			if int(statusCode) >= 400 {
+				errorCount++
+			} else {
+				successCount++
+			}
+		} else if statusCode, ok := log["status_code"].(int); ok {
+			statusCodes[statusCode]++
+			if statusCode >= 400 {
+				errorCount++
+			} else {
+				successCount++
+			}
+		}
+
+		// 统计路径
+		if path, ok := log["path"].(string); ok {
+			paths[path]++
+		}
+
+		// 统计延迟
+		if latencyMs, ok := log["latency_ms"].(int64); ok {
+			latency := float64(latencyMs)
+			totalLatency += latency
+			if latency > maxLatency {
+				maxLatency = latency
+			}
+			if latency < minLatency {
+				minLatency = latency
+			}
+		} else if latencyMs, ok := log["latency_ms"].(int32); ok {
+			latency := float64(latencyMs)
+			totalLatency += latency
+			if latency > maxLatency {
+				maxLatency = latency
+			}
+			if latency < minLatency {
+				minLatency = latency
+			}
+		}
+	}
+
+	// 计算平均延迟
+	var avgLatency float64 = 0
+	if len(logs) > 0 {
+		avgLatency = totalLatency / float64(len(logs))
+	}
+
+	stats["unique_users"] = len(uniqueUsers)
+	stats["unique_ips"] = len(uniqueIPs)
+	stats["methods"] = methods
+	stats["status_codes"] = statusCodes
+	stats["top_paths"] = s.getTopPaths(paths, 10)
+	stats["avg_latency_ms"] = avgLatency
+	stats["total_latency_ms"] = totalLatency
+	stats["max_latency_ms"] = maxLatency
+	if minLatency == 99999 {
+		stats["min_latency_ms"] = 0
+	} else {
+		stats["min_latency_ms"] = minLatency
+	}
+	stats["error_count"] = errorCount
+	stats["success_count"] = successCount
+
+	if len(logs) > 0 {
+		stats["success_rate"] = float64(successCount) / float64(len(logs)) * 100
+		stats["error_rate"] = float64(errorCount) / float64(len(logs)) * 100
+	}
+
+	return stats
+}
+
+// getTopPaths 获取访问最多的路径
+func (s *SystemService) getTopPaths(paths map[string]int, limit int) []map[string]interface{} {
+	type pathCount struct {
+		Path  string
+		Count int
+	}
+
+	var pathCounts []pathCount
+	for path, count := range paths {
+		pathCounts = append(pathCounts, pathCount{Path: path, Count: count})
+	}
+
+	// 简单排序（冒泡排序）
+	for i := 0; i < len(pathCounts)-1; i++ {
+		for j := 0; j < len(pathCounts)-i-1; j++ {
+			if pathCounts[j].Count < pathCounts[j+1].Count {
+				pathCounts[j], pathCounts[j+1] = pathCounts[j+1], pathCounts[j]
+			}
+		}
+	}
+
+	// 取前N个
+	if len(pathCounts) > limit {
+		pathCounts = pathCounts[:limit]
+	}
+
+	var result []map[string]interface{}
+	for _, pc := range pathCounts {
+		result = append(result, map[string]interface{}{
+			"path":  pc.Path,
+			"count": pc.Count,
+		})
+	}
+
+	return result
 }
 
 // AddDictType 添加字典类型

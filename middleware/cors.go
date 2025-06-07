@@ -20,7 +20,7 @@ type CorsConfig struct {
 
 // DefaultCorsConfig 默认CORS配置
 func DefaultCorsConfig() CorsConfig {
-	allowedOrigins := []string{"http://localhost:3000", "http://localhost:8080"}
+	allowedOrigins := []string{"http://localhost:3000", "http://localhost:8080", "http://localhost:9848"}
 
 	// 从环境变量读取允许的域名
 	if envOrigins := os.Getenv("ALLOWED_ORIGINS"); envOrigins != "" {
