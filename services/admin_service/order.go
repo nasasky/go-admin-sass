@@ -160,7 +160,7 @@ func (s *OrderService) enrichOrderData(ctx context.Context, orders []admin_model
 		if len(uniqueUserIds) > 0 {
 			var users []admin_model.AppUser
 			userErr = db.Dao.WithContext(ctx).
-				Select("id, user_name, avatar, phone").
+				Select("id, username, avatar, phone").
 				Where("id IN ?", uniqueUserIds).
 				Find(&users).Error
 

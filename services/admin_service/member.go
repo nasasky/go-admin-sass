@@ -30,7 +30,7 @@ func (s *MemberService) GetMemberList(c *gin.Context, params inout.ListpageReq) 
 	if params.Search != "" {
 		// 使用 LIKE 进行模糊搜索 - 用户名和手机号
 		searchTerm := "%" + params.Search + "%"
-		query = query.Where("user_name LIKE ? OR phone LIKE ? OR nick_name LIKE ?",
+		query = query.Where("username LIKE ? OR phone LIKE ? OR nick_name LIKE ?",
 			searchTerm, searchTerm, searchTerm)
 	}
 

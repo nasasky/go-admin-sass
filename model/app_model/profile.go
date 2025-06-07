@@ -13,7 +13,7 @@ type AppProfile struct {
 	Phone      string    `json:"phone"`
 	Openid     string    `json:"openid"`
 	UnionID    string    `json:"unionid"`
-	UserName   string    `json:"user_name"`
+	UserName   string    `json:"user_name" gorm:"column:username"`
 }
 
 func (AppProfile) TableName() string {

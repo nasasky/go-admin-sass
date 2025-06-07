@@ -11,7 +11,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	edisv9 "github.com/redis/go-redis/v9" // 适用于 v9 版本
+	// 导入Redis v9
+	// 适用于 v9 版本
 )
 
 type SettingService struct {
@@ -154,10 +155,10 @@ func (s *SettingService) GetQueueLogList(page, pageSize int) (map[string]interfa
 		pageSize = 10
 	}
 
-	// 获取队列中所有元素
-	result, err := redisClient.ZRangeWithScores(ctx, "pending_order_cancellations", 0, -1).Result()
+	// 获取正确的超时队列中所有元素 - 修复：使用正确的队列名称
+	result, err := redisClient.ZRangeWithScores(ctx, "order_timeouts", 0, -1).Result()
 	if err != nil {
-		return nil, fmt.Errorf("获取队列状态失败: %w", err)
+		return nil, fmt.Errorf("获取超时队列状态失败: %w", err)
 	}
 
 	// 统计数据
@@ -175,24 +176,73 @@ func (s *SettingService) GetQueueLogList(page, pageSize int) (map[string]interfa
 		endIndex = total
 	}
 
-	// 获取对应页的数据
-	var pagedResult []edisv9.Z
-	if startIndex < total {
-		pagedResult = result[startIndex:endIndex]
-	} else {
-		pagedResult = []edisv9.Z{}
-	}
+	// 处理当前页的数据
+	items := make([]map[string]interface{}, 0)
 
-	// 先计算总的过期和待处理数量
-	for _, z := range result {
+	for i, z := range result {
+		// 分页过滤
+		if i < startIndex || i >= endIndex {
+			continue
+		}
+
+		orderNo := z.Member.(string)
 		expireTimestamp := int64(z.Score)
 		expireTime := time.Unix(expireTimestamp, 0)
 
-		if now.After(expireTime) {
+		// 是否已过期但尚未处理
+		isOverdue := now.After(expireTime)
+		secondsLeft := int64(time.Until(expireTime).Seconds())
+
+		if isOverdue {
 			overdue++
 		} else {
 			pending++
 		}
+
+		// 从数据库获取订单详细信息（如果存在）
+		var orderInfo map[string]interface{}
+		var orderData struct {
+			UserID    int       `json:"user_id"`
+			GoodsID   int       `json:"goods_id"`
+			Amount    float64   `json:"amount"`
+			Status    string    `json:"status"`
+			CreatedAt time.Time `json:"created_at"`
+		}
+
+		err := db.Dao.Table("app_order").
+			Select("user_id, goods_id, amount, status, create_time as created_at").
+			Where("no = ?", orderNo).
+			First(&orderData).Error
+
+		if err == nil {
+			// 找到了订单信息
+			orderInfo = map[string]interface{}{
+				"order_no":     orderNo,
+				"user_id":      orderData.UserID,
+				"goods_id":     orderData.GoodsID,
+				"amount":       orderData.Amount,
+				"status":       orderData.Status,
+				"created_at":   orderData.CreatedAt.Format("2006-01-02 15:04:05"),
+				"expire_time":  expireTime.Format("2006-01-02 15:04:05"),
+				"seconds_left": secondsLeft,
+				"minutes_left": int(secondsLeft / 60),
+				"overdue":      isOverdue,
+				"has_order":    true,
+			}
+		} else {
+			// 队列中有记录但订单不存在（可能是孤立记录）
+			orderInfo = map[string]interface{}{
+				"order_no":     orderNo,
+				"expire_time":  expireTime.Format("2006-01-02 15:04:05"),
+				"seconds_left": secondsLeft,
+				"minutes_left": int(secondsLeft / 60),
+				"overdue":      isOverdue,
+				"has_order":    false,
+				"note":         "队列记录存在但订单不存在",
+			}
+		}
+
+		items = append(items, orderInfo)
 	}
 
 	// 完整统计数据
@@ -201,27 +251,7 @@ func (s *SettingService) GetQueueLogList(page, pageSize int) (map[string]interfa
 		"overdue_orders": overdue,
 		"pending_orders": pending,
 		"current_time":   now.Format("2006-01-02 15:04:05"),
-	}
-
-	// 处理当前页的数据
-	items := make([]map[string]interface{}, 0, len(pagedResult))
-
-	for _, z := range pagedResult {
-		orderNo := z.Member.(string)
-		expireTimestamp := int64(z.Score)
-		expireTime := time.Unix(expireTimestamp, 0)
-
-		// 是否已过期但尚未处理
-		isOverdue := now.After(expireTime)
-
-		orderInfo := map[string]interface{}{
-			"order_no":     orderNo,
-			"expire_time":  expireTime.Format("2006-01-02 15:04:05"),
-			"seconds_left": int64(time.Until(expireTime).Seconds()),
-			"overdue":      isOverdue,
-		}
-
-		items = append(items, orderInfo)
+		"queue_name":     "order_timeouts", // 添加队列名称信息
 	}
 
 	return map[string]interface{}{
@@ -229,7 +259,8 @@ func (s *SettingService) GetQueueLogList(page, pageSize int) (map[string]interfa
 		"page":        page,
 		"page_size":   pageSize,
 		"total_pages": totalPages,
-		"stats":       stats, // 将统计信息放入stats字段
-		"items":       items, // 将订单列表改为items字段
+		"stats":       stats,
+		"items":       items,
+		"message":     fmt.Sprintf("共找到 %d 个队列记录，其中 %d 个已过期，%d 个等待处理", total, overdue, pending),
 	}, nil
 }

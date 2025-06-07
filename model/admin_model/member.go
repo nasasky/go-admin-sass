@@ -4,7 +4,7 @@ import "time"
 
 type Member struct {
 	Id         int       `json:"id"`
-	UserName   string    `json:"user_name"`
+	UserName   string    `json:"user_name" gorm:"column:username"`
 	Avatar     string    `json:"avatar"`
 	NickName   string    `json:"nick_name"`
 	Phone      string    `json:"phone"`

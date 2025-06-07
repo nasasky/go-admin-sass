@@ -1,0 +1,209 @@
+# 订单安全系统配置
+# Author: Order Security System  
+# Date: 2024
+
+# Redis配置
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 100
+  min_idle_conns: 10
+  
+# 数据库配置
+database:
+  host: "localhost"
+  port: 3306
+  username: "root"
+  password: ""
+  database: "nasa_admin"
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: "1h"
+
+# 订单安全配置
+order_security:
+  # 分布式锁配置
+  distributed_lock:
+    default_timeout: "30s"
+    retry_count: 3
+    retry_delay: "100ms"
+    keepalive_interval: "10s"
+    
+  # 幂等性配置
+  idempotency:
+    ttl: "24h"
+    key_prefix: "order:idempotency:"
+    
+  # 库存安全配置
+  stock_safety:
+    retry_count: 5
+    retry_delay: "50ms"
+    max_retry_delay: "1s"
+    
+  # 钱包安全配置
+  wallet_safety:
+    lock_timeout: "10s"
+    retry_count: 3
+    
+  # 超时管理配置
+  timeout_manager:
+    order_expire_minutes: 15
+    payment_timeout_minutes: 10
+    check_interval: "2m"
+    batch_size: 50
+
+# 监控配置
+monitoring:
+  # 检查间隔
+  check_interval: "1m"
+  
+  # 告警阈值
+  alert_thresholds:
+    pending_orders_warning: 10
+    pending_orders_urgent: 50
+    payment_count_warning: 20
+    payment_count_urgent: 50
+    payment_amount_warning: 5000
+    payment_amount_urgent: 10000
+    negative_stock_warning: 1
+    order_failure_rate_warning: 0.05  # 5%
+    order_failure_rate_urgent: 0.1    # 10%
+    
+  # 性能阈值
+  performance_thresholds:
+    order_creation_latency_warning: "500ms"
+    order_creation_latency_urgent: "1s"
+    database_connection_usage_warning: 0.8  # 80%
+    database_connection_usage_urgent: 0.9   # 90%
+    redis_memory_usage_warning: 0.8
+    redis_memory_usage_urgent: 0.9
+    
+  # 数据一致性检查
+  consistency_check:
+    interval: "1h"
+    batch_size: 100
+    
+# 告警配置
+alerting:
+  # 告警方式
+  channels:
+    log: true
+    webhook: false
+    email: false
+    sms: false
+    
+  # Webhook配置（如果启用）
+  webhook:
+    url: ""
+    timeout: "10s"
+    retry_count: 3
+    
+  # 邮件配置（如果启用）
+  email:
+    smtp_host: ""
+    smtp_port: 587
+    username: ""
+    password: ""
+    from: ""
+    to: []
+    
+# 缓存配置
+cache:
+  # 商品信息缓存
+  goods_cache:
+    ttl: "5m"
+    prefix: "goods:"
+    
+  # 用户信息缓存
+  user_cache:
+    ttl: "10m"
+    prefix: "user:"
+    
+  # 库存缓存
+  stock_cache:
+    ttl: "1m"
+    prefix: "stock:"
+    
+# 日志配置
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+  order_log_file: "logs/order_security.log"
+  max_size: "100MB"
+  max_backups: 7
+  max_age: 30
+  compress: true
+  
+# 限流配置
+rate_limiting:
+  # 创建订单限流
+  create_order:
+    rate: 100      # 每秒请求数
+    burst: 200     # 突发容量
+    
+  # 用户级别限流
+  per_user:
+    rate: 10       # 每个用户每秒请求数
+    burst: 20      # 突发容量
+    window: "1m"   # 时间窗口
+    
+# 熔断器配置
+circuit_breaker:
+  failure_threshold: 5
+  success_threshold: 3
+  timeout: "30s"
+  max_requests: 10
+  
+# 重试配置
+retry:
+  max_attempts: 3
+  initial_delay: "100ms"
+  max_delay: "2s"
+  multiplier: 2.0
+  
+# 性能优化配置
+performance:
+  # 批处理配置
+  batch_processing:
+    batch_size: 100
+    flush_interval: "5s"
+    max_wait_time: "10s"
+    
+  # 异步处理配置
+  async_processing:
+    worker_count: 10
+    queue_size: 1000
+    
+# 开发/调试配置
+debug:
+  enable_debug_logs: false
+  enable_metrics: true
+  enable_pprof: false
+  pprof_addr: ":6060"
+  
+# 健康检查配置
+health_check:
+  interval: "30s"
+  timeout: "5s"
+  
+# 优雅关闭配置
+graceful_shutdown:
+  timeout: "30s"
+  
+# 环境特定配置
+environment:
+  name: "development"  # development, staging, production
+  
+# 特性开关
+feature_flags:
+  enable_monitoring: true
+  enable_alerting: true
+  enable_compensation: true
+  enable_distributed_lock: true
+  enable_idempotency_check: true
+  enable_stock_safety: true
+  enable_wallet_safety: true
+  enable_timeout_manager: true 

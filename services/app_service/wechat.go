@@ -238,7 +238,7 @@ func (w *WeChatService) saveUserLoginInfo(openID, unionID string) (map[string]in
 			}
 
 			// 仅选择数据库中存在的字段创建
-			if err := db.Dao.Select("openid", "union_id", "create_time", "update_time", "user_name").Create(&newUser).Error; err != nil {
+			if err := db.Dao.Select("openid", "union_id", "create_time", "update_time", "username").Create(&newUser).Error; err != nil {
 				return nil, fmt.Errorf("创建用户失败: %v", err)
 			}
 

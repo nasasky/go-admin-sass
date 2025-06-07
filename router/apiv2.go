@@ -20,6 +20,8 @@ func InitApp(r *gin.Engine) {
 		publicGroup.GET("/goods/list", app.GetGoodsList)
 		//商品详情
 		publicGroup.GET("/goods/detail", app.GetGoodsDetail)
+		// 订单系统健康检查（公开接口，用于监控）
+		publicGroup.GET("/order/health", app.GetOrderHealthStatus)
 	}
 
 	// 使用通用请求日志中间件的组
@@ -46,7 +48,7 @@ func InitApp(r *gin.Engine) {
 			authGroup.GET("/user/wallet", app.GetUserWallet)
 			//用户充值
 			authGroup.POST("/user/recharge", middleware.ValidationMiddleware(&inout.RechargeReq{}), app.Recharge)
-			//创建订单
+			//创建订单（现在使用安全订单创建器）
 			authGroup.POST("/order/create", middleware.ValidationMiddleware(&inout.CreateOrderReq{}), app.CreateOrder)
 			//我的订单列表
 			authGroup.GET("/order/list", middleware.ValidationMiddleware(&inout.MyOrderReq{}), app.GetMyOrderList)
