@@ -59,6 +59,10 @@ mongodb:
       uri: "mongodb://localhost:27017/websocket_logs"
       collections:
         connection_logs: "connection_logs"
+    booking_log_db:
+      uri: "mongodb://localhost:27017/booking_logs"
+      collections:
+        logs: "logs"
 
 # 日志配置
 log:

@@ -7,6 +7,7 @@ import (
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model/app_model"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -71,6 +72,9 @@ func (osm *OrderSystemManager) initSecureOrderCreator() error {
 
 	// 设置全局实例
 	InitGlobalSecureOrderCreator(osm.redisClient)
+
+	// 初始化诊断工具
+	InitGlobalDiagnostics(osm.redisClient)
 
 	log.Printf("✅ 安全订单创建器初始化完成")
 	return nil
@@ -262,13 +266,40 @@ func (osm *OrderSystemManager) processTimeoutQueue() {
 	log.Printf("发现 %d 个超时订单需要处理", len(results))
 
 	for _, orderNo := range results {
-		// 从队列中移除
-		osm.redisClient.ZRem(ctx, "order_timeouts", orderNo)
+		// 先尝试从队列中原子性移除订单，如果移除失败说明已被其他进程处理
+		removed, err := osm.redisClient.ZRem(ctx, "order_timeouts", orderNo).Result()
+		if err != nil {
+			log.Printf("从超时队列移除订单失败 %s: %v", orderNo, err)
+			continue
+		}
+
+		// 如果返回0，说明该订单已被其他进程移除，跳过处理
+		if removed == 0 {
+			log.Printf("订单 %s 已被其他进程处理，跳过", orderNo)
+			continue
+		}
 
 		// 异步处理订单取消
 		go func(no string) {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Printf("处理订单取消时发生panic %s: %v", no, r)
+				}
+			}()
+
 			if err := osm.secureCreator.CancelExpiredOrder(no); err != nil {
 				log.Printf("Redis队列取消订单失败 %s: %v", no, err)
+				// 如果取消失败且是锁相关错误，重新加入队列延后处理
+				errMsg := err.Error()
+				if strings.Contains(errMsg, "锁已被其他进程持有") || strings.Contains(errMsg, "获取取消锁失败") {
+					// 延后5分钟重新尝试
+					futureTime := time.Now().Add(5 * time.Minute).Unix()
+					osm.redisClient.ZAdd(ctx, "order_timeouts", redis.Z{
+						Score:  float64(futureTime),
+						Member: no,
+					})
+					log.Printf("订单 %s 取消失败，5分钟后重试", no)
+				}
 			} else {
 				log.Printf("Redis队列成功取消超时订单: %s", no)
 			}

@@ -1,6 +1,7 @@
 package app_service
 
 import (
+	"log"
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model/app_model"
@@ -41,8 +42,14 @@ func (s *OrderRefundService) Refund(c *gin.Context, uid int, params inout.Refund
 		return nil, err
 	}
 
-	orderService := OrderService{}
-	orderService.checkAndCancelOrder(order.No)
+	// 使用新的安全订单创建器进行订单取消
+	secureCreator := GetGlobalSecureOrderCreator()
+	if secureCreator != nil {
+		err = secureCreator.CancelExpiredOrder(order.No)
+		if err != nil {
+			log.Printf("取消订单失败: %v", err)
+		}
+	}
 
 	return nil, nil
 

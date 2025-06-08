@@ -11,14 +11,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var orderService = app_service.NewOrderService(redis.GetClient())
+// 使用统一的订单管理器
+var unifiedOrderManager *app_service.UnifiedOrderManager
 
-// 添加安全订单创建器
-var secureOrderCreator *app_service.SecureOrderCreator
-
-// 初始化安全订单创建器
+// 初始化统一订单管理器
 func init() {
-	secureOrderCreator = app_service.NewSecureOrderCreator(redis.GetClient())
+	unifiedOrderManager = app_service.NewUnifiedOrderManager(redis.GetClient())
+	// 初始化全局实例
+	app_service.InitGlobalUnifiedOrderManager(redis.GetClient())
+	log.Printf("✅ 订单控制器已使用统一订单管理器初始化")
 }
 
 // CreateOrder - 使用安全订单创建器
@@ -31,8 +32,8 @@ func CreateOrder(c *gin.Context) {
 
 	uid := c.GetInt("uid")
 
-	// 使用安全订单创建器
-	data, err := secureOrderCreator.CreateOrderSecurely(c, uid, params)
+	// 使用统一订单管理器
+	data, err := unifiedOrderManager.CreateOrder(c, uid, params)
 	if err != nil {
 		// 记录详细错误日志
 		log.Printf("安全订单创建失败: uid=%d, params=%+v, error=%v", uid, params, err)
@@ -53,7 +54,7 @@ func GetMyOrderList(c *gin.Context) {
 		return
 	}
 	uid := c.GetInt("uid")
-	data, err := orderService.GetMyOrderList(c, uid, params)
+	data, err := unifiedOrderManager.GetMyOrderList(c, uid, params)
 	if err != nil {
 		utils.Err(c, utils.ErrCodeInternalError, err)
 		return
@@ -76,7 +77,7 @@ func GetOrderDetail(c *gin.Context) {
 	}
 
 	uid := c.GetInt("uid")
-	data, err := orderService.GetOrderDetail(c, uid, id)
+	data, err := unifiedOrderManager.GetOrderDetail(c, uid, id)
 	if err != nil {
 		utils.Err(c, utils.ErrCodeInternalError, err)
 		return
@@ -87,16 +88,12 @@ func GetOrderDetail(c *gin.Context) {
 
 // GetOrderHealthStatus 获取订单系统健康状态 - 新增接口
 func GetOrderHealthStatus(c *gin.Context) {
-	if secureOrderCreator == nil {
-		utils.Err(c, utils.ErrCodeInternalError, utils.NewError("安全订单创建器未初始化"))
+	if unifiedOrderManager == nil {
+		utils.Err(c, utils.ErrCodeInternalError, utils.NewError("统一订单管理器未初始化"))
 		return
 	}
 
-	// 简化的健康状态检查
-	status := gin.H{
-		"status":      "healthy",
-		"service":     "secure_order_creator",
-		"initialized": secureOrderCreator != nil,
-	}
+	// 获取系统健康状态
+	status := unifiedOrderManager.GetHealthStatus()
 	utils.Succ(c, status)
 }

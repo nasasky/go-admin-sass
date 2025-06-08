@@ -65,13 +65,8 @@ func (si *ServiceInitializer) InitializeOrderService(redisClient interface{}) *O
 	// 异步初始化数据库相关组件
 	go si.initializeDatabaseComponents(service)
 
-	// 启动订单取消工作器
-	workerMutex.Lock()
-	if !workerStarted {
-		service.startOrderCancellationWorker()
-		workerStarted = true
-	}
-	workerMutex.Unlock()
+	// 注意：订单取消工作器已迁移到 SecureOrderCreator 和 UnifiedOrderManager
+	// 这里不再启动旧的工作器
 
 	log.Printf("订单服务基础组件初始化完成")
 	return service

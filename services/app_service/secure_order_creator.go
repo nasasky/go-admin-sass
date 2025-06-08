@@ -43,11 +43,12 @@ func (soc *SecureOrderCreator) CreateOrderSecurely(c *gin.Context, uid int, para
 	startTime := time.Now()
 	log.Printf("🚀 开始安全创建订单 用户:%d 商品:%d 数量:%d", uid, params.GoodsId, params.Num)
 
-	// 1. 幂等性检查 - 防止重复下单
+	// 1. 生成幂等性键但先不设置，等订单成功后再设置
 	idempotencyKey := fmt.Sprintf("order_create:%d:%d:%s", uid, params.GoodsId,
 		time.Now().Format("20060102_15"))
 
-	isDuplicate, err := soc.idempotencyChecker.CheckAndSet(idempotencyKey, 1*time.Hour)
+	// 先检查是否存在重复请求，但不立即设置标记
+	isDuplicate, err := soc.idempotencyChecker.CheckOnly(idempotencyKey)
 	if err != nil {
 		log.Printf("幂等性检查失败: %v", err)
 	} else if isDuplicate {
@@ -96,14 +97,16 @@ func (soc *SecureOrderCreator) CreateOrderSecurely(c *gin.Context, uid int, para
 		return "", fmt.Errorf("商品不存在: %w", err)
 	}
 
-	// 验证商品状态和库存
+	// 验证商品状态和库存 - 这些业务逻辑失败时不应该设置幂等性标记
 	if goods.Status != "1" {
 		tx.Rollback()
+		// 商品下架是业务逻辑问题，不设置幂等性标记
 		return "", fmt.Errorf("商品已下架或不可购买")
 	}
 
 	if goods.Stock < params.Num {
 		tx.Rollback()
+		// 库存不足是业务逻辑问题，不设置幂等性标记，让用户补充库存后可以重新下单
 		return "", fmt.Errorf("库存不足，当前库存: %d，需要: %d", goods.Stock, params.Num)
 	}
 
@@ -167,10 +170,18 @@ func (soc *SecureOrderCreator) CreateOrderSecurely(c *gin.Context, uid int, para
 		return "", fmt.Errorf("提交事务失败: %w", err)
 	}
 
-	// 11. 异步处理后续流程
+	// 11. 订单创建成功后才设置幂等性标记
+	if setErr := soc.idempotencyChecker.SetIdempotencyMark(idempotencyKey, 1*time.Hour); setErr != nil {
+		log.Printf("设置幂等性标记失败: %v", setErr)
+		// 这个失败不影响订单创建结果
+	} else {
+		log.Printf("✅ 已设置幂等性标记，防止重复下单: %s", idempotencyKey)
+	}
+
+	// 12. 异步处理后续流程
 	go soc.handlePostOrderCreation(&order, &goods, orderStatus)
 
-	// 12. 如果是待支付状态，设置超时取消
+	// 13. 如果是待支付状态，设置超时取消
 	if orderStatus == "pending" {
 		if err := soc.timeoutManager.ScheduleOrderTimeout(orderNo, 15*time.Minute); err != nil {
 			log.Printf("设置订单超时失败: %v", err)
@@ -234,6 +245,22 @@ func (soc *SecureOrderCreator) generateOrderNo(uid, goodsId int) string {
 func (soc *SecureOrderCreator) CancelExpiredOrder(orderNo string) error {
 	log.Printf("🔍 检查过期订单: %s", orderNo)
 
+	// 先进行快速状态检查，避免不必要的锁获取
+	var quickCheck app_model.AppOrder
+	if err := db.Dao.Select("status").Where("no = ?", orderNo).First(&quickCheck).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			log.Printf("订单 %s 不存在，跳过处理", orderNo)
+			return nil
+		}
+		return fmt.Errorf("快速状态检查失败: %w", err)
+	}
+
+	// 如果订单已经不是pending状态，直接返回
+	if quickCheck.Status != "pending" {
+		log.Printf("订单 %s 状态为 %s，无需取消", orderNo, quickCheck.Status)
+		return nil
+	}
+
 	// 获取订单取消锁
 	cancelLock := soc.securityService.NewDistributedLock(
 		fmt.Sprintf("cancel_order:%s", orderNo),
@@ -257,27 +284,40 @@ func (soc *SecureOrderCreator) CancelExpiredOrder(orderNo string) error {
 		}
 	}()
 
-	// 查询订单状态
+	// 查询订单状态（使用行锁）
 	var order app_model.AppOrder
 	if err := tx.Set("gorm:query_option", "FOR UPDATE").
 		Where("no = ?", orderNo).First(&order).Error; err != nil {
 		tx.Rollback()
+		if err == gorm.ErrRecordNotFound {
+			log.Printf("订单 %s 不存在", orderNo)
+			return nil
+		}
 		return fmt.Errorf("查询订单失败: %w", err)
 	}
 
-	// 只取消pending状态的订单
+	// 再次检查订单状态（双重检查）
 	if order.Status != "pending" {
 		tx.Rollback()
 		log.Printf("订单 %s 状态为 %s，无需取消", orderNo, order.Status)
 		return nil
 	}
 
-	// 更新订单状态为已取消
-	if err := tx.Model(&app_model.AppOrder{}).
+	// 原子性更新订单状态
+	result := tx.Model(&app_model.AppOrder{}).
 		Where("no = ? AND status = ?", orderNo, "pending").
-		Update("status", "cancelled").Error; err != nil {
+		Update("status", "cancelled")
+
+	if result.Error != nil {
 		tx.Rollback()
-		return fmt.Errorf("更新订单状态失败: %w", err)
+		return fmt.Errorf("更新订单状态失败: %w", result.Error)
+	}
+
+	// 检查是否实际更新了记录
+	if result.RowsAffected == 0 {
+		tx.Rollback()
+		log.Printf("订单 %s 状态已被其他进程修改，无需取消", orderNo)
+		return nil
 	}
 
 	// 恢复商品库存
@@ -292,6 +332,17 @@ func (soc *SecureOrderCreator) CancelExpiredOrder(orderNo string) error {
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("提交取消事务失败: %w", err)
 	}
+
+	// 清除幂等性标记，允许用户重新下单
+	go func() {
+		idempotencyKey := fmt.Sprintf("order_create:%d:%d:%s", order.UserId, order.GoodsId,
+			order.CreateTime.Format("20060102_15"))
+		if clearErr := soc.idempotencyChecker.ClearIdempotencyMark(idempotencyKey); clearErr != nil {
+			log.Printf("清除幂等性标记失败: %v", clearErr)
+		} else {
+			log.Printf("已清除订单 %s 的幂等性标记，用户可重新下单", orderNo)
+		}
+	}()
 
 	log.Printf("✅ 订单 %s 已取消，库存已恢复", orderNo)
 
@@ -388,6 +439,135 @@ func (soc *SecureOrderCreator) GetOrderStatus(orderNo string) (string, error) {
 	}
 
 	return order.Status, nil
+}
+
+// GetOrderDetail 获取订单详情
+func (soc *SecureOrderCreator) GetOrderDetail(c *gin.Context, uid int, id int) (interface{}, error) {
+	// 查询订单详情
+	var order app_model.AppOrder
+	err := db.Dao.Where("id = ? AND user_id = ?", id, uid).First(&order).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 查询商品详情
+	var goods app_model.AppGoods
+	err = db.Dao.Where("id = ?", order.GoodsId).First(&goods).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 格式化时间字段
+	response := inout.OrderItem{
+		Id:         order.Id,
+		UserId:     order.UserId,
+		GoodsId:    order.GoodsId,
+		GoodsName:  goods.GoodsName,
+		GoodsPrice: goods.Price,
+		Num:        order.Num,
+		Amount:     order.Amount,
+		Status:     order.Status,
+		CreateTime: order.CreateTime.Format("2006-01-02 15:04:05"),
+		UpdateTime: order.UpdateTime.Format("2006-01-02 15:04:05"),
+	}
+
+	return response, nil
+}
+
+// GetMyOrderList 获取我的订单列表
+func (soc *SecureOrderCreator) GetMyOrderList(c *gin.Context, uid int, params inout.MyOrderReq) (interface{}, error) {
+	// 查询订单列表
+	var orders []app_model.AppOrder
+	var total int64
+
+	// 设置默认分页参数
+	if params.Page <= 0 {
+		params.Page = 1
+	}
+	if params.PageSize <= 0 {
+		params.PageSize = 10
+	}
+
+	// 计算偏移量
+	offset := (params.Page - 1) * params.PageSize
+
+	// 查询总数和分页数据
+	query := db.Dao.Model(&app_model.AppOrder{}).Where("user_id = ?", uid)
+
+	// 如果有状态筛选
+	if params.Status != "" {
+		query = query.Where("status = ?", params.Status)
+	}
+
+	err := query.Count(&total).Offset(offset).Limit(params.PageSize).Find(&orders).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取所有商品 ID
+	goodsIds := make([]int, len(orders))
+	for i, order := range orders {
+		goodsIds[i] = order.GoodsId
+	}
+
+	// 批量查询商品详情
+	goodsMap, err := soc.getGoodsDetailsBatch(goodsIds)
+	if err != nil {
+		return nil, err
+	}
+
+	// 格式化时间字段并查询商品详情
+	formattedData := make([]inout.OrderItem, len(orders))
+	for i, item := range orders {
+		goods := goodsMap[item.GoodsId]
+
+		formattedData[i] = inout.OrderItem{
+			Id:         item.Id,
+			UserId:     item.UserId,
+			GoodsId:    item.GoodsId,
+			GoodsName:  goods.GoodsName,
+			GoodsPrice: goods.Price,
+			Num:        item.Num,
+			Amount:     item.Amount,
+			Status:     item.Status,
+			CreateTime: item.CreateTime.Format("2006-01-02 15:04:05"),
+			UpdateTime: item.UpdateTime.Format("2006-01-02 15:04:05"),
+		}
+	}
+
+	response := inout.MyOrderResp{
+		Total:    total,
+		List:     formattedData,
+		Page:     params.Page,
+		PageSize: params.PageSize,
+	}
+
+	return response, nil
+}
+
+// getGoodsDetailsBatch 批量查询商品详情
+func (soc *SecureOrderCreator) getGoodsDetailsBatch(goodsIds []int) (map[int]app_model.AppGoods, error) {
+	if len(goodsIds) == 0 {
+		return make(map[int]app_model.AppGoods), nil
+	}
+
+	// 批量查询商品详情
+	var goodsList []app_model.AppGoods
+	err := db.Dao.Select("id, goods_name, price, content, cover, status, category_id, stock, create_time, update_time").
+		Where("id IN ? AND isdelete != ?", goodsIds, 1).
+		Find(&goodsList).Error
+
+	if err != nil {
+		return nil, fmt.Errorf("批量查询商品失败: %w", err)
+	}
+
+	// 将商品详情存储到映射中
+	goodsMap := make(map[int]app_model.AppGoods)
+	for _, goods := range goodsList {
+		goodsMap[goods.Id] = goods
+	}
+
+	return goodsMap, nil
 }
 
 // 全局安全订单创建器实例

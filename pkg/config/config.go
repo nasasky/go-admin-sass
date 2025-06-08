@@ -215,8 +215,10 @@ func loadFromEnv(config *Config) error {
 		config.Server.Mode = mode
 	}
 
-	// Database配置
-	if dsn := os.Getenv("MYSQL_DSN"); dsn != "" {
+	// Database配置 - 兼容原有的环境变量名
+	if dsn := os.Getenv("Mysql"); dsn != "" {
+		config.Database.DSN = dsn
+	} else if dsn := os.Getenv("MYSQL_DSN"); dsn != "" {
 		config.Database.DSN = dsn
 	}
 

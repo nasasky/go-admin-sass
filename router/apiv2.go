@@ -34,6 +34,18 @@ func InitApp(r *gin.Engine) {
 		//登录
 		logGroup.POST("/login", middleware.ValidationMiddleware(&inout.LoginAppReq{}), app.Login)
 
+		// ========== 房间查看相关接口（无需登录，但记录日志） ==========
+		// 房间列表
+		logGroup.GET("/rooms", app.GetRoomList)
+		// 房间详情
+		logGroup.GET("/rooms/:id", app.GetRoomDetail)
+		// 检查房间可用性
+		logGroup.POST("/rooms/check-availability", app.CheckRoomAvailability)
+		// 房间统计信息
+		logGroup.GET("/rooms/statistics", app.GetRoomStatistics)
+		// 获取房间可用套餐
+		logGroup.GET("/rooms/packages", app.GetRoomPackages)
+
 		// 需要JWT验证的接口组
 		authGroup := logGroup.Group("/")
 		authGroup.Use(middleware.AppJWTAuth())
@@ -56,6 +68,15 @@ func InitApp(r *gin.Engine) {
 			authGroup.GET("/order/detail", app.GetOrderDetail)
 			//申请退款
 			authGroup.POST("/order/refund", app.Refund)
+
+			// ========== 房间预订相关接口（需要登录） ==========
+			// 预订管理
+			authGroup.POST("/bookings", app.CreateBooking)
+			authGroup.GET("/bookings", app.GetMyBookingList)
+			authGroup.GET("/bookings/:id", app.GetBookingDetail)
+			authGroup.POST("/bookings/cancel", app.CancelBooking)
+			// 预订价格预览
+			authGroup.POST("/bookings/price-preview", app.BookingPricePreview)
 		}
 	}
 }

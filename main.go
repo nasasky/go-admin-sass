@@ -10,11 +10,12 @@ import (
 	"syscall"
 	"time"
 
-	"nasa-go-admin/config"
+	oldConfig "nasa-go-admin/config"
 	"nasa-go-admin/db"
 	"nasa-go-admin/middleware"
 	"nasa-go-admin/mongodb"
 	"nasa-go-admin/pkg/cache"
+	"nasa-go-admin/pkg/config"
 	"nasa-go-admin/pkg/database"
 	"nasa-go-admin/pkg/goroutinepool"
 	"nasa-go-admin/pkg/monitoring"
@@ -86,16 +87,24 @@ func main() {
 	// 获取服务模式和端口配置，优先使用构建时的默认值
 	serviceName := getEnv("SERVICE_NAME", DefaultServiceName)
 	routerMode := getEnv("ROUTER_MODE", DefaultRouterMode)
-	port := getEnv("PORT", DefaultPort)
 
-	log.Printf("启动 %s (模式: %s, 端口: %s)...", serviceName, routerMode, port)
-
-	// 初始化 Redis 客户端
-	redisConfig := config.LoadConfig()
-	redis.InitRedis(redisConfig)
+	log.Printf("启动 %s (模式: %s)...", serviceName, routerMode)
 
 	// 初始化配置
-	config.InitConfig()
+	if err := config.InitConfig(); err != nil {
+		log.Fatalf("Failed to initialize config: %v", err)
+	}
+
+	cfg := config.GetConfig()
+	log.Printf("配置系统已统一，使用新的配置管理")
+
+	// 初始化 Redis 客户端
+	redisConfig := oldConfig.RedisConfig{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	}
+	redis.InitRedis(redisConfig)
 
 	// 设置时区
 	loc, err := time.LoadLocation("Asia/Shanghai")
@@ -129,6 +138,13 @@ func main() {
 		}
 	}
 
+	// 初始化订单状态自动管理调度器
+	if routerMode == "admin" || routerMode == "all" {
+		log.Printf("📅 启动订单状态自动管理调度器...")
+		bookingScheduler := app_service.NewBookingScheduler()
+		bookingScheduler.StartScheduler()
+	}
+
 	// 根据服务类型决定是否初始化WebSocket
 	if routerMode == "app" || routerMode == "all" {
 		// 初始化 WebSocket 服务
@@ -137,7 +153,7 @@ func main() {
 	}
 
 	// 设置Gin模式
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(cfg.Server.Mode)
 	app := gin.New()
 
 	// 添加全局中间件
@@ -209,16 +225,16 @@ func main() {
 
 	// 创建HTTP服务器
 	server := &http.Server{
-		Addr:         ":" + port,
+		Addr:         ":" + cfg.Server.Port,
 		Handler:      app,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  60 * time.Second,
 	}
 
 	// 启动服务器
 	go func() {
-		log.Printf("服务器启动在端口 :8801")
+		log.Printf("服务器启动在端口 :%s", cfg.Server.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("服务启动失败: %v", err)
 		}

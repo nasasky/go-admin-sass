@@ -192,14 +192,32 @@ func (dl *DistributedLock) AcquireWithRenewal(ctx context.Context) error {
 		return fmt.Errorf("Redis客户端未初始化")
 	}
 
-	// 获取锁
+	// 快速获取锁，避免长时间等待
 	acquired, err := dl.redisClient.SetNX(ctx, dl.key, dl.value, dl.expiration).Result()
 	if err != nil {
 		return fmt.Errorf("获取锁失败: %w", err)
 	}
 
 	if !acquired {
-		return fmt.Errorf("锁已被其他进程持有")
+		// 检查锁的剩余时间，如果锁即将过期，可以短暂等待
+		ttl, err := dl.redisClient.TTL(ctx, dl.key).Result()
+		if err == nil && ttl > 0 && ttl < 5*time.Second {
+			// 锁即将过期，等待一小段时间后重试
+			select {
+			case <-time.After(ttl + 100*time.Millisecond):
+				acquired, err = dl.redisClient.SetNX(ctx, dl.key, dl.value, dl.expiration).Result()
+				if err != nil {
+					return fmt.Errorf("获取锁失败: %w", err)
+				}
+				if !acquired {
+					return fmt.Errorf("锁已被其他进程持有")
+				}
+			case <-ctx.Done():
+				return fmt.Errorf("获取锁超时: %w", ctx.Err())
+			}
+		} else {
+			return fmt.Errorf("锁已被其他进程持有")
+		}
 	}
 
 	// 启动续期协程
@@ -323,6 +341,62 @@ func (ic *IdempotencyChecker) CheckAndSet(key string, expiration time.Duration) 
 	}
 
 	return false, nil // 不存在，可以继续操作
+}
+
+// CheckOnly 仅检查幂等性，不设置标记
+func (ic *IdempotencyChecker) CheckOnly(key string) (bool, error) {
+	if ic.redisClient == nil {
+		// Redis不可用时，记录日志但允许继续（降级策略）
+		log.Printf("Redis不可用，跳过幂等性检查: %s", key)
+		return false, nil
+	}
+
+	ctx := context.Background()
+
+	// 检查是否已存在
+	exists, err := ic.redisClient.Exists(ctx, key).Result()
+	if err != nil {
+		log.Printf("幂等性检查失败: %v", err)
+		return false, nil // 不阻塞业务流程
+	}
+
+	return exists > 0, nil // 返回是否存在
+}
+
+// SetIdempotencyMark 设置幂等性标记
+func (ic *IdempotencyChecker) SetIdempotencyMark(key string, expiration time.Duration) error {
+	if ic.redisClient == nil {
+		log.Printf("Redis不可用，跳过设置幂等性标记: %s", key)
+		return nil
+	}
+
+	ctx := context.Background()
+
+	// 设置幂等性标记
+	_, err := ic.redisClient.Set(ctx, key, "1", expiration).Result()
+	if err != nil {
+		return fmt.Errorf("设置幂等性标记失败: %w", err)
+	}
+
+	return nil
+}
+
+// ClearIdempotencyMark 清除幂等性标记
+func (ic *IdempotencyChecker) ClearIdempotencyMark(key string) error {
+	if ic.redisClient == nil {
+		log.Printf("Redis不可用，跳过清除幂等性标记: %s", key)
+		return nil
+	}
+
+	ctx := context.Background()
+
+	// 删除幂等性标记
+	_, err := ic.redisClient.Del(ctx, key).Result()
+	if err != nil {
+		return fmt.Errorf("清除幂等性标记失败: %w", err)
+	}
+
+	return nil
 }
 
 // MultiLayerTimeoutManager 多层超时管理器

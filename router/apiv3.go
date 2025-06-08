@@ -48,6 +48,55 @@ func InitAdmin(r *gin.Engine) {
 	authGroup.Use(middleware.AdminJWTAuth()) // 应用统一管理员JWT中间件
 	authGroup.Use(middleware.RequestLogger("request_admin_log"))
 	authGroup.Use(middleware.UserInfoMiddleware())
+
+	// ========== 房间包厢管理接口 ==========
+	{
+		// 房间管理
+		authGroup.POST("/rooms", admin.CreateRoom)
+		authGroup.PUT("/rooms", admin.UpdateRoom)
+		authGroup.GET("/rooms", admin.GetAdminRoomList)
+		authGroup.GET("/rooms/:id", admin.GetAdminRoomDetail)
+		authGroup.PUT("/rooms/status", admin.UpdateRoomStatus)
+		authGroup.DELETE("/rooms/:id", admin.DeleteRoom)
+
+		// 预订管理
+		authGroup.GET("/bookings", admin.GetAdminBookingList)
+		authGroup.PUT("/bookings/status", admin.UpdateBookingStatus)
+
+		// 订单状态管理
+		authGroup.GET("/bookings/status-info", admin.GetBookingStatusInfo)
+		authGroup.POST("/bookings/manual-start", admin.ManualStartBooking)
+		authGroup.POST("/bookings/manual-end", admin.ManualEndBooking)
+
+		// 订单状态日志管理
+		authGroup.GET("/bookings/logs", admin.GetBookingLogList)
+		authGroup.GET("/bookings/logs/statistics", admin.GetBookingLogStatistics)
+
+		// 统计信息
+		authGroup.GET("/rooms/statistics", admin.GetRoomStatisticsAdmin)
+
+		// ========== 房间套餐管理接口 ==========
+		// 套餐管理
+		roomPackageController := admin.NewRoomPackageController()
+		authGroup.POST("/rooms/packages", roomPackageController.CreatePackage)
+		authGroup.PUT("/rooms/packages", roomPackageController.UpdatePackage)
+		authGroup.GET("/rooms/packages", roomPackageController.GetPackageList)
+		authGroup.DELETE("/rooms/packages/:id", roomPackageController.DeletePackage)
+
+		// 套餐规则管理
+		authGroup.POST("/rooms/package-rules", roomPackageController.CreatePackageRule)
+		authGroup.PUT("/rooms/package-rules", roomPackageController.UpdatePackageRule)
+		authGroup.GET("/rooms/package-rules", roomPackageController.GetPackageRuleList)
+		authGroup.DELETE("/rooms/package-rules/:id", roomPackageController.DeletePackageRule)
+
+		// 特殊日期管理
+		authGroup.GET("/rooms/special-dates", roomPackageController.GetSpecialDateList)
+		authGroup.POST("/rooms/special-dates", roomPackageController.CreateSpecialDate)
+		authGroup.DELETE("/rooms/special-dates/:id", roomPackageController.DeleteSpecialDate)
+
+		// 价格计算接口
+		authGroup.POST("/rooms/calculate-price", roomPackageController.CalculatePrice)
+	}
 	{
 		//退出登录
 		authGroup.POST("/auth/logout", admin.Logout)
@@ -141,6 +190,8 @@ func InitAdmin(r *gin.Engine) {
 
 		//获取收益流水统计列表
 		authGroup.GET("/order/revenue/list", admin.GetRevenueList)
+		//手动刷新收益统计数据
+		authGroup.POST("/order/revenue/refresh", admin.RefreshRevenueStats)
 
 		//添加员工
 		authGroup.POST("/employee/add", admin.AddEmployee)

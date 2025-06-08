@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"log"
+	"nasa-go-admin/pkg/config"
 	"nasa-go-admin/pkg/monitoring"
 	"os"
 	"path/filepath"
@@ -17,6 +18,18 @@ import (
 var Dao *gorm.DB
 
 func Init() {
+	// 获取配置
+	cfg := config.GetConfig()
+
+	// 获取数据库DSN，优先使用环境变量
+	dsn := os.Getenv("Mysql")
+	if dsn == "" && cfg.Database.DSN != "" {
+		dsn = cfg.Database.DSN
+	}
+	if dsn == "" {
+		log.Fatalf("数据库连接字符串未配置，请设置环境变量 Mysql 或配置文件中的 database.dsn")
+	}
+
 	// 创建日志文件夹
 	logDir := "gormlog"
 	if err := os.MkdirAll(logDir, os.ModePerm); err != nil {
@@ -30,6 +43,21 @@ func Init() {
 		log.Fatalf("Failed to open log file: %v", err)
 	}
 
+	// 根据配置设置日志级别
+	var logLevel logger.LogLevel
+	switch cfg.Database.LogLevel {
+	case "silent":
+		logLevel = logger.Silent
+	case "error":
+		logLevel = logger.Error
+	case "warn":
+		logLevel = logger.Warn
+	case "info":
+		logLevel = logger.Info
+	default:
+		logLevel = logger.Info
+	}
+
 	dbLogger := logger.New(
 		log.New(file, "\r\n", log.LstdFlags), // 将日志输出设置为文件
 		logger.Config{
@@ -37,37 +65,41 @@ func Init() {
 			Colorful:                  false,
 			IgnoreRecordNotFoundError: true,
 			ParameterizedQueries:      false,
-			LogLevel:                  logger.Info,
+			LogLevel:                  logLevel,
 		},
 	)
-	openDb, err := gorm.Open(mysql.Open(os.Getenv("Mysql")), &gorm.Config{
+
+	openDb, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger:                                   dbLogger,
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		log.Fatalf("db connection error is %s", err.Error())
 	}
+
 	dbCon, err := openDb.DB()
 	if err != nil {
 		log.Fatalf("openDb.DB error is  %s", err.Error())
 	}
-	// 优化连接池配置 - 生产环境优化
-	maxOpenConns := 50 // 生产环境推荐50-100连接
-	maxIdleConns := 20 // 空闲连接数
 
-	// 根据环境变量动态调整
+	// 使用配置中的连接池参数
+	maxOpenConns := cfg.Database.MaxOpenConns
+	maxIdleConns := cfg.Database.MaxIdleConns
+
+	// 根据环境变量动态调整（保持向后兼容）
 	if envMaxOpen := os.Getenv("DB_MAX_OPEN_CONNS"); envMaxOpen != "" {
 		if parsed, err := strconv.Atoi(envMaxOpen); err == nil && parsed > 0 {
 			maxOpenConns = parsed
 		}
 	}
 
-	dbCon.SetMaxIdleConns(maxIdleConns)        // 空闲连接数
-	dbCon.SetMaxOpenConns(maxOpenConns)        // 最大连接数
-	dbCon.SetConnMaxLifetime(time.Hour)        // 连接最大生命周期
-	dbCon.SetConnMaxIdleTime(30 * time.Minute) // 空闲连接最大生命周期
+	dbCon.SetMaxIdleConns(maxIdleConns)                    // 空闲连接数
+	dbCon.SetMaxOpenConns(maxOpenConns)                    // 最大连接数
+	dbCon.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime) // 连接最大生命周期
+	dbCon.SetConnMaxIdleTime(30 * time.Minute)             // 空闲连接最大生命周期
 
-	log.Printf("数据库连接池配置 - MaxOpen: %d, MaxIdle: %d", maxOpenConns, maxIdleConns)
+	log.Printf("数据库连接池配置 - MaxOpen: %d, MaxIdle: %d, MaxLifetime: %v",
+		maxOpenConns, maxIdleConns, cfg.Database.ConnMaxLifetime)
 	Dao = openDb
 
 	// 启动数据库连接池监控（降低频率避免过多日志）
