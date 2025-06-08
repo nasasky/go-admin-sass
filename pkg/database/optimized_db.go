@@ -124,12 +124,29 @@ func startDBMonitoring(sqlDB *sql.DB, interval time.Duration) {
 
 // checkDBHealth 检查数据库健康状态
 func checkDBHealth(stats sql.DBStats) {
-	// 连接使用率检查
-	if stats.OpenConnections > 0 {
-		usageRate := float64(stats.InUse) / float64(stats.OpenConnections)
-		if usageRate > 0.9 {
-			log.Printf("警告: 数据库连接使用率过高 %.2f%%", usageRate*100)
+	// 修正连接使用率检查逻辑
+	if stats.MaxOpenConnections > 0 {
+		// 使用最大连接数作为基准计算使用率
+		maxUsageRate := float64(stats.OpenConnections) / float64(stats.MaxOpenConnections)
+		// 使用当前打开连接数作为基准计算活跃率
+		activeRate := float64(stats.InUse) / float64(stats.OpenConnections)
+
+		// 只有当连接池使用率超过80%时才警告
+		if maxUsageRate > 0.8 {
+			log.Printf("警告: 数据库连接池使用率过高 %.2f%% (%d/%d)",
+				maxUsageRate*100, stats.OpenConnections, stats.MaxOpenConnections)
 		}
+
+		// 只有当活跃连接使用率过高且有实际连接在使用时才警告
+		if stats.InUse > 0 && activeRate > 0.9 && stats.OpenConnections > 1 {
+			log.Printf("警告: 数据库活跃连接使用率过高 %.2f%% (%d/%d活跃)",
+				activeRate*100, stats.InUse, stats.OpenConnections)
+		}
+
+		// 调试信息：详细连接状态
+		log.Printf("数据库连接详情 - 总连接池: %d/%d, 使用中: %d, 空闲: %d, 最大使用率: %.1f%%, 活跃率: %.1f%%",
+			stats.OpenConnections, stats.MaxOpenConnections, stats.InUse, stats.Idle,
+			maxUsageRate*100, activeRate*100)
 	}
 
 	// 等待时间检查
@@ -140,6 +157,11 @@ func checkDBHealth(stats sql.DBStats) {
 	// 连接池满检查
 	if stats.OpenConnections >= stats.MaxOpenConnections {
 		log.Printf("警告: 数据库连接池已满 %d/%d", stats.OpenConnections, stats.MaxOpenConnections)
+	}
+
+	// 连接池过小检查（生产环境建议）
+	if stats.MaxOpenConnections < 20 {
+		log.Printf("建议: 数据库连接池大小较小 (%d)，生产环境建议设置为50-100", stats.MaxOpenConnections)
 	}
 }
 

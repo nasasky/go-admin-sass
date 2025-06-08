@@ -144,6 +144,9 @@ func main() {
 	app.Use(middleware.Recovery())
 	app.Use(middleware.Performance())
 
+	// 添加CORS中间件 - 解决跨域问题
+	app.Use(middleware.Cors())
+
 	// 根据服务类型设置不同的限流
 	switch routerMode {
 	case "admin":

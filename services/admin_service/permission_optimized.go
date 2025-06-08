@@ -7,6 +7,7 @@ import (
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/pkg/cache"
 	"nasa-go-admin/redis"
+	"sort"
 	"time"
 )
 
@@ -172,6 +173,38 @@ func (s *PermissionService) buildPermissionTree(permissions []admin_model.Permis
 			childrenMap[perm.ParentId] = children
 		}
 	}
+
+	// 🔧 关键修复：对所有层级的子节点进行排序
+	for parentId, children := range childrenMap {
+		sort.Slice(children, func(i, j int) bool {
+			// 按sort字段降序排列（数值大的在前）
+			// 如果sort字段相同，则按ID升序排列确保稳定排序
+			if children[i].Sort == children[j].Sort {
+				return children[i].ID < children[j].ID
+			}
+			return children[i].Sort > children[j].Sort
+		})
+		childrenMap[parentId] = children
+	}
+
+	// 🔧 关键修复：对根节点也进行排序
+	sort.Slice(roots, func(i, j int) bool {
+		if nodeI, ok := roots[i].(map[string]interface{}); ok {
+			if nodeJ, ok := roots[j].(map[string]interface{}); ok {
+				if idI, ok := nodeI["id"].(int); ok {
+					if idJ, ok := nodeJ["id"].(int); ok {
+						permI := permMap[idI]
+						permJ := permMap[idJ]
+						if permI.Sort == permJ.Sort {
+							return permI.ID < permJ.ID
+						}
+						return permI.Sort > permJ.Sort
+					}
+				}
+			}
+		}
+		return false
+	})
 
 	// 递归构建树结构
 	return s.buildTreeRecursive(roots, permMap, childrenMap)

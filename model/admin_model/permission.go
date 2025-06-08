@@ -43,6 +43,7 @@ type PermissionUser struct {
 	Show      int              `json:"show"`
 	Enable    int              `json:"enable"`
 	Order     int              `json:"order"`
+	Sort      int              `json:"sort"`
 	KeepAlive int              `json:"keepAlive" gorm:"column:keepAlive"`
 	IsLink    int              `json:"is_link"`
 	Children  []PermissionUser `json:"children" gorm:"-"`

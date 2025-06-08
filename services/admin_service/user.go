@@ -11,6 +11,7 @@ import (
 	"nasa-go-admin/pkg/monitoring"
 	"nasa-go-admin/redis"
 	"reflect"
+	"sort"
 	"strconv"
 	"time"
 
@@ -615,6 +616,16 @@ func (s *TenantsService) buildUserPermissionTree(permissions []admin_model.Permi
 		}
 	}
 
+	// 🔧 关键修复：对根节点也进行排序
+	sort.Slice(roots, func(i, j int) bool {
+		// 按sort字段降序排列（数值大的在前）
+		// 如果sort字段相同，则按ID升序排列确保稳定排序
+		if roots[i].Sort == roots[j].Sort {
+			return roots[i].ID < roots[j].ID
+		}
+		return roots[i].Sort > roots[j].Sort
+	})
+
 	return roots
 }
 
@@ -634,6 +645,17 @@ func (s *TenantsService) buildChildrenRecursive(parentID int, permMap map[int]ad
 			children = append(children, child)
 		}
 	}
+
+	// 🔧 关键修复：按sort字段排序
+	// 使用sort包对children进行排序
+	sort.Slice(children, func(i, j int) bool {
+		// 按sort字段降序排列（数值大的在前）
+		// 如果sort字段相同，则按ID升序排列确保稳定排序
+		if children[i].Sort == children[j].Sort {
+			return children[i].ID < children[j].ID
+		}
+		return children[i].Sort > children[j].Sort
+	})
 
 	return children
 }
