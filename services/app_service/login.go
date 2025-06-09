@@ -115,7 +115,7 @@ func (s *UserService) Refresh(uid int) (string, error) {
 
 // 封装一个获取token的方法
 func GetToken(uid int) (string, error) {
-	token, err := jwt.GenerateAppToken(uid, 0, 0)
+	token, err := jwt.GenerateAppToken(uid, 0, 0, time.Hour*24)
 	if err != nil {
 		return "", fmt.Errorf("生成令牌失败: %w", err)
 	}

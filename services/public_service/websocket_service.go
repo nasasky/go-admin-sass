@@ -83,10 +83,12 @@ type NotificationMessage struct {
 
 // SendTask 发送任务
 type SendTask struct {
-	Message  *NotificationMessage
-	UserIDs  []int
-	Response chan<- error
-	Attempt  int
+	Message    *NotificationMessage
+	UserIDs    []int
+	Response   chan<- error
+	Attempt    int
+	MaxRetries int           // 最大重试次数
+	RetryDelay time.Duration // 重试延迟
 }
 
 // WebSocketService 提供WebSocket通信服务
@@ -106,6 +108,7 @@ type WebSocketService struct {
 	failedMessages    int64 // 失败消息数
 	ctxWorkers        context.Context
 	cancelWorkers     context.CancelFunc
+	offlineService    *OfflineMessageService // 离线消息服务
 }
 
 var (
@@ -118,10 +121,11 @@ func GetWebSocketService() *WebSocketService {
 	wsServiceOnce.Do(func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		wsService = &WebSocketService{
-			messageQueue:  make(chan *SendTask, 10000), // 可容纳10000条消息的缓冲队列
-			workerCount:   runtime.NumCPU() * 2,        // 工作线程数为CPU核心数的2倍
-			ctxWorkers:    ctx,
-			cancelWorkers: cancel,
+			messageQueue:   make(chan *SendTask, 50000), // 优化：增加到50000条消息缓冲队列
+			workerCount:    runtime.NumCPU() * 4,        // 优化：增加工作线程数为CPU核心数的4倍
+			ctxWorkers:     ctx,
+			cancelWorkers:  cancel,
+			offlineService: NewOfflineMessageService(), // 初始化离线消息服务
 		}
 	})
 	return wsService
@@ -242,8 +246,14 @@ func (s *WebSocketService) startStatsCollector() {
 			active := atomic.LoadInt64(&s.activeConnections)
 			failed := atomic.LoadInt64(&s.failedMessages)
 
-			log.Printf("WebSocket统计: 活跃连接=%d, 入站消息率=%d/10s, 出站消息率=%d/10s, 失败消息=%d",
-				active, inbound, outbound, failed)
+			// 获取更详细的统计信息
+			hubStats := s.GetHub().GetStats()
+
+			log.Printf("📊 WebSocket详细统计:")
+			log.Printf("  ├─ 连接统计: 活跃连接=%d, 在线用户=%d", active, hubStats["unique_users"])
+			log.Printf("  ├─ 消息统计: 入站=%d/100s, 出站=%d/100s, 失败=%d", inbound, outbound, failed)
+			log.Printf("  ├─ 成功率: %.2f%%", float64(outbound)/float64(outbound+failed)*100)
+			log.Printf("  └─ 队列状态: 待处理=%d", len(s.messageQueue))
 		}
 	}
 }
@@ -279,9 +289,12 @@ func (s *WebSocketService) SendNotification(msg *NotificationMessage) error {
 	}
 
 	task := &SendTask{
-		Message:  msg,
-		UserIDs:  targetIDs,
-		Response: responseCh,
+		Message:    msg,
+		UserIDs:    targetIDs,
+		Response:   responseCh,
+		Attempt:    0,
+		MaxRetries: 3,               // 最大重试3次
+		RetryDelay: 2 * time.Second, // 重试间隔2秒
 	}
 
 	// 根据优先级决定是否阻塞或排队

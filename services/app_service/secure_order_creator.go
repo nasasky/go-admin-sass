@@ -44,8 +44,9 @@ func (soc *SecureOrderCreator) CreateOrderSecurely(c *gin.Context, uid int, para
 	log.Printf("🚀 开始安全创建订单 用户:%d 商品:%d 数量:%d", uid, params.GoodsId, params.Num)
 
 	// 1. 生成幂等性键但先不设置，等订单成功后再设置
+	// 使用分钟级时间窗口，减少误拦截，同时保持防重复效果
 	idempotencyKey := fmt.Sprintf("order_create:%d:%d:%s", uid, params.GoodsId,
-		time.Now().Format("20060102_15"))
+		time.Now().Format("200601021504")) // 改为分钟级，格式：202412092336
 
 	// 先检查是否存在重复请求，但不立即设置标记
 	isDuplicate, err := soc.idempotencyChecker.CheckOnly(idempotencyKey)
@@ -171,7 +172,7 @@ func (soc *SecureOrderCreator) CreateOrderSecurely(c *gin.Context, uid int, para
 	}
 
 	// 11. 订单创建成功后才设置幂等性标记
-	if setErr := soc.idempotencyChecker.SetIdempotencyMark(idempotencyKey, 1*time.Hour); setErr != nil {
+	if setErr := soc.idempotencyChecker.SetIdempotencyMark(idempotencyKey, 2*time.Minute); setErr != nil {
 		log.Printf("设置幂等性标记失败: %v", setErr)
 		// 这个失败不影响订单创建结果
 	} else {
@@ -336,7 +337,7 @@ func (soc *SecureOrderCreator) CancelExpiredOrder(orderNo string) error {
 	// 清除幂等性标记，允许用户重新下单
 	go func() {
 		idempotencyKey := fmt.Sprintf("order_create:%d:%d:%s", order.UserId, order.GoodsId,
-			order.CreateTime.Format("20060102_15"))
+			order.CreateTime.Format("200601021504"))
 		if clearErr := soc.idempotencyChecker.ClearIdempotencyMark(idempotencyKey); clearErr != nil {
 			log.Printf("清除幂等性标记失败: %v", clearErr)
 		} else {
@@ -417,6 +418,17 @@ func (soc *SecureOrderCreator) ProcessPayment(orderNo string, amount float64) er
 	if err := tx.Commit().Error; err != nil {
 		return fmt.Errorf("提交支付事务失败: %w", err)
 	}
+
+	// 支付成功后清除幂等性标记，允许用户重新购买该商品
+	go func() {
+		idempotencyKey := fmt.Sprintf("order_create:%d:%d:%s", order.UserId, order.GoodsId,
+			order.CreateTime.Format("200601021504"))
+		if clearErr := soc.idempotencyChecker.ClearIdempotencyMark(idempotencyKey); clearErr != nil {
+			log.Printf("清除幂等性标记失败: %v", clearErr)
+		} else {
+			log.Printf("✅ 订单 %s 支付成功，已清除幂等性标记，用户可重新购买", orderNo)
+		}
+	}()
 
 	log.Printf("✅ 订单 %s 支付处理完成", orderNo)
 

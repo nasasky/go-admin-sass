@@ -69,15 +69,19 @@ func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName s
 	// 添加一些统计信息
 	stats := s.calculateLogStats(logs)
 
+	// 格式化时间字段
+	formattedLogs := utils.FormatTimeFieldsForResponse(logs)
+
 	// 构造返回结果
 	response := map[string]interface{}{
 		"total":      total,
 		"page":       req.Page,
 		"page_size":  req.PageSize,
-		"items":      logs,
+		"items":      formattedLogs,
 		"stats":      stats,
 		"query_time": time.Now().Format("2006-01-02 15:04:05"),
 		"database":   collectionName,
+		"timezone":   utils.GetTimeZoneInfo(),
 	}
 
 	return response, nil

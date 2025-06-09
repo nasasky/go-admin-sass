@@ -9,19 +9,19 @@ import (
 // SystemMetrics 系统指标数据
 type SystemMetrics struct {
 	ID          primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Timestamp   time.Time          `bson:"timestamp" json:"timestamp"`
+	Timestamp   string             `bson:"timestamp" json:"timestamp"`
 	MetricType  string             `bson:"metric_type" json:"metric_type"` // http_request, db_connection, user_action, etc.
 	MetricName  string             `bson:"metric_name" json:"metric_name"` // 具体指标名称
 	Value       float64            `bson:"value" json:"value"`
 	Labels      map[string]string  `bson:"labels,omitempty" json:"labels,omitempty"` // 标签信息
 	Description string             `bson:"description,omitempty" json:"description,omitempty"`
-	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
+	CreatedAt   string             `bson:"created_at" json:"created_at"`
 }
 
 // HTTPMetrics HTTP请求指标
 type HTTPMetrics struct {
 	ID         primitive.ObjectID `bson:"_id,omitempty" json:"id"`
-	Timestamp  time.Time          `bson:"timestamp" json:"timestamp"`
+	Timestamp  string             `bson:"timestamp" json:"timestamp"`
 	Method     string             `bson:"method" json:"method"`
 	Endpoint   string             `bson:"endpoint" json:"endpoint"`
 	StatusCode int                `bson:"status_code" json:"status_code"`
@@ -29,7 +29,7 @@ type HTTPMetrics struct {
 	UserAgent  string             `bson:"user_agent,omitempty" json:"user_agent,omitempty"`
 	ClientIP   string             `bson:"client_ip,omitempty" json:"client_ip,omitempty"`
 	UserID     int                `bson:"user_id,omitempty" json:"user_id,omitempty"`
-	CreatedAt  time.Time          `bson:"created_at" json:"created_at"`
+	CreatedAt  string             `bson:"created_at" json:"created_at"`
 }
 
 // DatabaseMetrics 数据库指标

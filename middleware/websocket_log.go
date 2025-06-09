@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"nasa-go-admin/redis"
+	"nasa-go-admin/utils"
 	"strings"
 	"time"
 
@@ -23,8 +24,8 @@ func WebSocketLogger() gin.HandlerFunc {
 			// 获取MongoDB集合
 			collection := GetMongoCollection("websocket_log_db", "connection_logs")
 
-			// 记录连接建立信息
-			timestamp := time.Now().Format("2006-01-02 15:04:05")
+			// 记录连接建立信息 - 使用UTC时间
+			timestamp := utils.GetCurrentTimeForMongo()
 			clientIP := c.ClientIP()
 
 			// 从请求中提取信息
@@ -153,7 +154,7 @@ func LogWebSocketDisconnect(userID int, connectionID string, reason string) {
 	update := bson.M{
 		"$set": bson.M{
 			"status":            "disconnected",
-			"disconnect_time":   time.Now().Format("2006-01-02 15:04:05"),
+			"disconnect_time":   utils.GetCurrentTimeForMongo(),
 			"disconnect_reason": reason,
 		},
 	}

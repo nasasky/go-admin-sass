@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"nasa-go-admin/model/app_model"
+	"nasa-go-admin/utils"
 	"sync"
 	"time"
 
@@ -52,7 +53,7 @@ func (s *SecurityOrderService) SafeDeductStock(tx *gorm.DB, goodsId, quantity in
 			Where("id = ? AND stock >= ? AND status = '1' AND isdelete != 1", goodsId, quantity).
 			Updates(map[string]interface{}{
 				"stock":       gorm.Expr("stock - ?", quantity),
-				"update_time": time.Now(),
+				"update_time": utils.GetCurrentTimeForMongo(),
 			})
 
 		if result.Error != nil {
@@ -150,12 +151,14 @@ func (s *SecurityOrderService) RecordWalletTransaction(tx *gorm.DB, uid int, amo
 
 	transaction := app_model.AppRecharge{
 		UserID:          uid,
-		Description:     description,
+		Remark:          description,
 		TransactionType: "order_payment",
 		Amount:          amount,
 		BalanceBefore:   balanceBefore,
 		BalanceAfter:    balanceAfter,
+		Status:          "completed",
 		CreateTime:      time.Now(),
+		UpdateTime:      time.Now(),
 	}
 
 	if err := tx.Create(&transaction).Error; err != nil {
@@ -502,27 +505,41 @@ func (ocs *OrderCompensationService) DetectAndFixInconsistencies() error {
 }
 
 func (ocs *OrderCompensationService) fixOrphanedPayments() error {
-	// 查找有支付记录但没有对应订单的情况
+	// 查找有支付记录但没有对应订单的情况 - 修复查询逻辑
+	// 注意：使用 remark 字段而不是 description，因为 app_recharge 表中的字段名是 remark
 	query := `
-		SELECT ar.user_id, ar.amount, ar.description, ar.create_time
+		SELECT ar.user_id, ar.amount, ar.remark, ar.create_time, ar.order_no
 		FROM app_recharge ar 
 		WHERE ar.transaction_type = 'order_payment' 
 		AND ar.create_time > ? 
-		AND NOT EXISTS (
-			SELECT 1 FROM app_order ao 
-			WHERE ao.user_id = ar.user_id 
-			AND ABS(ao.amount - ar.amount) < 0.01
-			AND ao.create_time BETWEEN ar.create_time - INTERVAL 2 MINUTE 
-		                           AND ar.create_time + INTERVAL 2 MINUTE
+		AND ar.status = 'completed'
+		AND (
+			-- 有订单号但找不到对应订单
+			(ar.order_no IS NOT NULL AND ar.order_no != '' AND NOT EXISTS (
+				SELECT 1 FROM app_order ao 
+				WHERE ao.no = ar.order_no
+				AND ao.user_id = ar.user_id 
+				AND ABS(ao.amount - ar.amount) < 0.01
+			))
+			OR
+			-- 没有订单号且找不到匹配的订单
+			((ar.order_no IS NULL OR ar.order_no = '') AND NOT EXISTS (
+				SELECT 1 FROM app_order ao 
+				WHERE ao.user_id = ar.user_id 
+				AND ABS(ao.amount - ar.amount) < 0.01
+				AND ao.create_time BETWEEN ar.create_time - INTERVAL 10 MINUTE 
+			                           AND ar.create_time + INTERVAL 10 MINUTE
+			))
 		)
-		LIMIT 50
+		LIMIT 20
 	`
 
 	var orphanedPayments []struct {
-		UserID      int       `json:"user_id"`
-		Amount      float64   `json:"amount"`
-		Description string    `json:"description"`
-		CreateTime  time.Time `json:"create_time"`
+		UserID     int       `json:"user_id"`
+		Amount     float64   `json:"amount"`
+		Remark     string    `json:"remark"`
+		CreateTime time.Time `json:"create_time"`
+		OrderNo    *string   `json:"order_no"`
 	}
 
 	err := ocs.db.Raw(query, time.Now().Add(-24*time.Hour)).Scan(&orphanedPayments).Error
@@ -534,25 +551,108 @@ func (ocs *OrderCompensationService) fixOrphanedPayments() error {
 		log.Printf("发现 %d 个孤立的支付记录", len(orphanedPayments))
 
 		for _, payment := range orphanedPayments {
+			orderInfo := "无订单号"
+			if payment.OrderNo != nil && *payment.OrderNo != "" {
+				orderInfo = *payment.OrderNo
+			}
+
 			// 退款到用户钱包
 			err := ocs.refundToWallet(payment.UserID, payment.Amount,
-				fmt.Sprintf("系统补偿退款: %s", payment.Description))
+				fmt.Sprintf("系统补偿退款[%s]: %s", orderInfo, payment.Remark))
 			if err != nil {
-				log.Printf("补偿退款失败 用户:%d 金额:%.2f 错误:%v",
-					payment.UserID, payment.Amount, err)
+				log.Printf("补偿退款失败 用户:%d 金额:%.2f 订单:%s 错误:%v",
+					payment.UserID, payment.Amount, orderInfo, err)
 			} else {
-				log.Printf("✅ 补偿退款成功 用户:%d 金额:%.2f",
-					payment.UserID, payment.Amount)
+				log.Printf("✅ 补偿退款成功 用户:%d 金额:%.2f 订单:%s",
+					payment.UserID, payment.Amount, orderInfo)
 			}
 		}
+	} else {
+		log.Printf("✅ 未发现孤立的支付记录")
 	}
 
 	return nil
 }
 
 func (ocs *OrderCompensationService) fixOrphanedStockReductions() error {
-	// 这里实现库存异常检测和修复逻辑
 	log.Printf("检查库存异常...")
+
+	// 查找可能的库存扣减异常
+	// 1. 查找有订单但库存没有正确扣减的情况
+	query := `
+		SELECT ag.id as goods_id, ag.title, ag.stock, 
+			   COUNT(ao.id) as order_count,
+			   SUM(ao.num) as total_ordered
+		FROM app_goods ag
+		LEFT JOIN app_order ao ON ag.id = ao.goods_id 
+			AND ao.status IN ('1', '2', '3') -- 已支付、处理中、已完成
+			AND ao.create_time > ?
+		WHERE ag.status = '1' AND ag.isdelete != 1
+		GROUP BY ag.id, ag.title, ag.stock
+		HAVING total_ordered > 0
+		LIMIT 50
+	`
+
+	var stockIssues []struct {
+		GoodsID      int    `json:"goods_id"`
+		Title        string `json:"title"`
+		Stock        int    `json:"stock"`
+		OrderCount   int    `json:"order_count"`
+		TotalOrdered int    `json:"total_ordered"`
+	}
+
+	err := ocs.db.Raw(query, time.Now().Add(-7*24*time.Hour)).Scan(&stockIssues).Error
+	if err != nil {
+		return fmt.Errorf("查询库存异常失败: %w", err)
+	}
+
+	if len(stockIssues) > 0 {
+		log.Printf("发现 %d 个商品需要检查库存状态", len(stockIssues))
+
+		for _, issue := range stockIssues {
+			// 记录库存检查日志
+			log.Printf("商品 %d (%s): 当前库存=%d, 订单数=%d, 总订购量=%d",
+				issue.GoodsID, issue.Title, issue.Stock, issue.OrderCount, issue.TotalOrdered)
+
+			// 这里可以根据业务逻辑决定是否需要调整库存
+			// 比如如果发现库存数据异常，可以发送告警或自动修正
+		}
+	}
+
+	// 2. 查找库存为负数的异常情况
+	var negativeStock []struct {
+		GoodsID int    `json:"goods_id"`
+		Title   string `json:"title"`
+		Stock   int    `json:"stock"`
+	}
+
+	err = ocs.db.Table("app_goods").
+		Select("id as goods_id, title, stock").
+		Where("stock < 0 AND status = '1' AND isdelete != 1").
+		Scan(&negativeStock).Error
+
+	if err != nil {
+		log.Printf("查询负库存失败: %v", err)
+	} else if len(negativeStock) > 0 {
+		log.Printf("⚠️  发现 %d 个商品库存为负数", len(negativeStock))
+
+		for _, item := range negativeStock {
+			log.Printf("负库存商品: ID=%d, 名称=%s, 库存=%d",
+				item.GoodsID, item.Title, item.Stock)
+
+			// 自动修正负库存为0
+			err := ocs.db.Model(&app_model.AppGoods{}).
+				Where("id = ?", item.GoodsID).
+				Update("stock", 0).Error
+
+			if err != nil {
+				log.Printf("修正负库存失败 商品ID:%d 错误:%v", item.GoodsID, err)
+			} else {
+				log.Printf("✅ 已修正负库存 商品ID:%d 库存设为0", item.GoodsID)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -589,10 +689,12 @@ func (ocs *OrderCompensationService) refundToWallet(userID int, amount float64, 
 	// 记录退款流水
 	refundRecord := app_model.AppRecharge{
 		UserID:          userID,
-		Description:     description,
+		Remark:          description,
 		TransactionType: "system_refund",
 		Amount:          amount,
+		Status:          "completed",
 		CreateTime:      time.Now(),
+		UpdateTime:      time.Now(),
 	}
 
 	if err := tx.Create(&refundRecord).Error; err != nil {

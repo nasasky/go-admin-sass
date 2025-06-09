@@ -50,7 +50,7 @@ func GenerateTokenApp(uId int, rID int, tYPE int) string {
 		rID,
 		tYPE,
 		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)),
 		},
 	}
 
@@ -76,7 +76,7 @@ func (j *JWT) RefreshTokenApp(tokenString string) (string, error) {
 	}
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
 		jwt.TimeFunc = time.Now
-		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour))
+		claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(time.Hour * 24))
 		return j.createToken(*claims)
 	}
 	return "", TokenInvalid

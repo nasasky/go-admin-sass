@@ -268,7 +268,7 @@ func (oms *OrderMonitoringService) checkSystemPerformance() error {
 	return nil
 }
 
-// checkDataConsistency 检查数据一致性
+// checkDataConsistency 检查数据一致性 - 修复版本
 func (oms *OrderMonitoringService) checkDataConsistency() error {
 	// 检查订单和支付记录的一致性
 	var inconsistentData []struct {
@@ -277,7 +277,7 @@ func (oms *OrderMonitoringService) checkDataConsistency() error {
 		Description string `json:"description"`
 	}
 
-	// 查找有支付记录但没有订单的情况
+	// 查找有支付记录但没有订单的情况 - 修复查询逻辑
 	query1 := `
 		SELECT 
 			'orphaned_payments' as issue,
@@ -286,12 +286,13 @@ func (oms *OrderMonitoringService) checkDataConsistency() error {
 		FROM app_recharge ar 
 		WHERE ar.transaction_type = 'order_payment' 
 		AND ar.create_time > ? 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
 		AND NOT EXISTS (
 			SELECT 1 FROM app_order ao 
-			WHERE ao.user_id = ar.user_id 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
 			AND ABS(ao.amount - ar.amount) < 0.01
-			AND ao.create_time BETWEEN ar.create_time - INTERVAL 5 MINUTE 
-		                           AND ar.create_time + INTERVAL 5 MINUTE
 		)
 	`
 
@@ -310,7 +311,7 @@ func (oms *OrderMonitoringService) checkDataConsistency() error {
 		inconsistentData = append(inconsistentData, orphanedPayments)
 	}
 
-	// 查找有订单但状态异常的情况
+	// 查找有订单但状态异常的情况 - 优化查询条件
 	query2 := `
 		SELECT 
 			'status_mismatch' as issue,
@@ -318,15 +319,18 @@ func (oms *OrderMonitoringService) checkDataConsistency() error {
 			'订单状态异常' as description
 		FROM app_order ao 
 		WHERE ao.create_time > ?
-		AND (
-			(ao.status = 'paid' AND NOT EXISTS (
-				SELECT 1 FROM app_recharge ar 
-				WHERE ar.user_id = ao.user_id 
-				AND ar.transaction_type = 'order_payment'
-				AND ABS(ar.amount - ao.amount) < 0.01
-				AND ar.create_time BETWEEN ao.create_time - INTERVAL 5 MINUTE 
-			                           AND ao.create_time + INTERVAL 5 MINUTE
-			))
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
 		)
 	`
 
@@ -345,11 +349,14 @@ func (oms *OrderMonitoringService) checkDataConsistency() error {
 		inconsistentData = append(inconsistentData, statusMismatch)
 	}
 
-	// 发送一致性告警
+	// 发送一致性告警 - 只有数量大于阈值才告警
 	for _, data := range inconsistentData {
-		if data.Count > 0 {
+		if data.Count > 2 { // 设置阈值为2，减少误报
 			oms.alerter.SendAlert("数据一致性告警",
 				fmt.Sprintf("%s: 发现 %d 条异常记录", data.Description, data.Count))
+			log.Printf("🚨 [ALERT] %s: 发现 %d 条异常记录", data.Description, data.Count)
+		} else if data.Count > 0 {
+			log.Printf("⚠️ [INFO] %s: 发现 %d 条记录，数量较少，可能为正常情况", data.Description, data.Count)
 		}
 	}
 

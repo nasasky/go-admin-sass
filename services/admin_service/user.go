@@ -109,7 +109,7 @@ func (s *TenantsService) LoginTenants(c *gin.Context, username, password string)
 		return nil, fmt.Errorf("密码错误")
 	}
 
-	token, err := jwt.GenerateAdminToken(users.ID, users.RoleId, users.UserType)
+	token, err := jwt.GenerateAdminToken(users.ID, users.RoleId, users.UserType, time.Hour*24)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %w", err)
 	}
@@ -169,7 +169,7 @@ func (s *TenantsService) Login(c *gin.Context, username, password string) (map[s
 		return nil, fmt.Errorf("密码错误")
 	}
 
-	token, err := jwt.GenerateAdminToken(user.ID, user.RoleId, user.UserType)
+	token, err := jwt.GenerateAdminToken(user.ID, user.RoleId, user.UserType, time.Hour*24)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %w", err)
 	}
@@ -222,7 +222,7 @@ func (s *TenantsService) GetUserInfo(c *gin.Context, id int) (map[string]interfa
 		return nil, err
 	}
 
-	token, err := jwt.GenerateAdminToken(user.ID, user.RoleId, user.UserType)
+	token, err := jwt.GenerateAdminToken(user.ID, user.RoleId, user.UserType, time.Hour*24)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %w", err)
 	}

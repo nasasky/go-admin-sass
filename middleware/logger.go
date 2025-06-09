@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"nasa-go-admin/redis" // 假设 Redis 操作封装在这个包中
+	"nasa-go-admin/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -69,8 +70,8 @@ func RequestLogger(logType string) gin.HandlerFunc {
 		// 客户端IP
 		clientIP := c.ClientIP()
 
-		// 格式化时间
-		timestamp := start.Format("2006-01-02 15:04:05")
+		// 格式化时间 - 使用UTC时间确保一致性
+		timestamp := utils.GetCurrentTimeForMongo()
 
 		// 获取用户信息 - 改进错误处理和调试
 		var userInfo map[string]interface{}
@@ -138,6 +139,14 @@ func RequestLogger(logType string) gin.HandlerFunc {
 			}
 		}
 
+		// 将参数对象转换为JSON字符串
+		paramsJSON := ""
+		if len(params) > 0 {
+			if jsonBytes, err := json.Marshal(params); err == nil {
+				paramsJSON = string(jsonBytes)
+			}
+		}
+
 		// 构建完整的日志记录
 		logEntry := map[string]interface{}{
 			"timestamp":        timestamp,
@@ -147,7 +156,7 @@ func RequestLogger(logType string) gin.HandlerFunc {
 			"user_id":          userID,
 			"username":         username,
 			"user_info":        userInfo,
-			"request_params":   params,
+			"request_params":   paramsJSON,
 			"latency_ms":       latency.Milliseconds(),
 			"latency":          latency.String(),
 			"status_code":      statusCode,
@@ -159,6 +168,7 @@ func RequestLogger(logType string) gin.HandlerFunc {
 			"user_agent":       c.Request.UserAgent(),
 			"referer":          c.Request.Referer(),
 			"log_type":         logType,
+			"local_timestamp":  start.Format("2006-01-02 15:04:05"), // 本地时间用于调试
 		}
 
 		log.Printf("[DEBUG] 准备保存日志: 用户ID=%s, 用户名=%s, 路径=%s", userID, username, path)

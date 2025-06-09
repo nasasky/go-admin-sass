@@ -1,8 +1,6 @@
 package app_model
 
 import (
-	"time"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -20,7 +18,7 @@ type BookingStatusLog struct {
 	Message    string             `bson:"message" json:"message"`         // 操作信息
 	ErrorMsg   string             `bson:"error_msg" json:"error_msg"`     // 错误信息
 	Details    interface{}        `bson:"details" json:"details"`         // 详细信息
-	CreatedAt  time.Time          `bson:"created_at" json:"created_at"`   // 创建时间
+	CreatedAt  string             `bson:"created_at" json:"created_at"`   // 创建时间
 	ServerInfo ServerInfo         `bson:"server_info" json:"server_info"` // 服务器信息
 }
 

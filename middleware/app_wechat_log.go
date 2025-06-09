@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"nasa-go-admin/redis"
-	"time"
+	"nasa-go-admin/utils"
 )
 
 // LogWechatEvent 记录WebSocket事件
@@ -13,8 +13,8 @@ func LogWechatEvent(eventType string, userID int, connectionID string, data map[
 	// 获取MongoDB集合
 	collection := GetMongoCollection("wechat_log_db", "news_logs")
 
-	// 准备事件日志
-	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	// 准备事件日志 - 使用UTC时间
+	timestamp := utils.GetCurrentTimeForMongo()
 
 	// 创建事件日志
 	eventLog := map[string]interface{}{

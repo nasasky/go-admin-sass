@@ -4,6 +4,7 @@ import (
 	"log"
 	"nasa-go-admin/middleware"
 	"sync"
+	"time"
 )
 
 // Hub 维护活跃客户端的集合并广播消息
@@ -47,8 +48,30 @@ func (h *Hub) Run() {
 			// 将客户端添加到用户映射
 			h.mu.Lock()
 			h.UserClients[client.UserID] = append(h.UserClients[client.UserID], client)
+			userConnCount := len(h.UserClients[client.UserID])
 			h.mu.Unlock()
-			log.Printf("新客户端注册: UserID=%d, 当前连接数: %d", client.UserID, len(h.Clients))
+
+			totalConnections := len(h.Clients)
+			uniqueUsers := len(h.UserClients)
+
+			log.Printf("✅ 新客户端注册: UserID=%d, ConnectionID=%s, 该用户连接数=%d, 总连接数=%d, 在线用户数=%d",
+				client.UserID, client.ConnectionID, userConnCount, totalConnections, uniqueUsers)
+
+			// 记录详细连接统计
+			if totalConnections%10 == 0 { // 每10个连接记录一次详细统计
+				log.Printf("📊 连接统计: 总连接=%d, 独立用户=%d, 平均每用户连接=%.2f",
+					totalConnections, uniqueUsers, float64(totalConnections)/float64(uniqueUsers))
+			}
+
+			// 异步处理用户上线后的离线消息
+			go func(userID int) {
+				// 延迟1秒确保连接稳定
+				time.Sleep(1 * time.Second)
+
+				// 这里需要通过某种方式获取OfflineMessageService
+				// 由于架构限制，我们在WebSocket连接成功后在控制器中处理
+				log.Printf("📱 用户 %d 上线，准备发送离线消息", userID)
+			}(client.UserID)
 
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client]; ok {
@@ -69,7 +92,10 @@ func (h *Hub) Run() {
 				}
 				h.mu.Unlock()
 
-				log.Printf("客户端注销: UserID=%d, 当前连接数: %d", client.UserID, len(h.Clients))
+				totalConnections := len(h.Clients)
+				uniqueUsers := len(h.UserClients)
+				log.Printf("❌ 客户端注销: UserID=%d, ConnectionID=%s, 总连接数=%d, 在线用户数=%d",
+					client.UserID, client.ConnectionID, totalConnections, uniqueUsers)
 			}
 
 		case message := <-h.Broadcast:
@@ -133,4 +159,36 @@ func (h *Hub) SendToUser(userID int, message []byte) {
 	})
 
 	log.Printf("消息已发送给用户 %d, 接收客户端数量: %d", userID, len(clients))
+}
+
+// GetStats 获取Hub统计信息
+func (h *Hub) GetStats() map[string]interface{} {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	totalConnections := len(h.Clients)
+	uniqueUsers := len(h.UserClients)
+
+	// 计算每个用户的连接数分布
+	var maxUserConnections int
+	var totalUserConnections int
+	for _, clients := range h.UserClients {
+		connCount := len(clients)
+		totalUserConnections += connCount
+		if connCount > maxUserConnections {
+			maxUserConnections = connCount
+		}
+	}
+
+	avgConnectionsPerUser := 0.0
+	if uniqueUsers > 0 {
+		avgConnectionsPerUser = float64(totalUserConnections) / float64(uniqueUsers)
+	}
+
+	return map[string]interface{}{
+		"total_connections":        totalConnections,
+		"unique_users":             uniqueUsers,
+		"max_user_connections":     maxUserConnections,
+		"avg_connections_per_user": avgConnectionsPerUser,
+	}
 }

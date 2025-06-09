@@ -78,7 +78,6 @@ func (s *WalletService) Recharge(c *gin.Context, uid int, params app_model.AppWa
 	// 更新用户余额和更新时间
 	err = tx.Model(&app_model.AppWallet{}).Where("user_id = ?", uid).Updates(map[string]interface{}{
 		"money":       gorm.Expr("money + ?", params.Money),
-		"create_time": time.Now(),
 		"update_time": time.Now(),
 	}).Error
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *WalletService) Recharge(c *gin.Context, uid int, params app_model.AppWa
 		Amount:          params.Money,
 		BalanceBefore:   wallet.Money - params.Money,
 		BalanceAfter:    wallet.Money,
-		Description:     "用户充值",
+		Remark:          "用户充值",
 		CreateTime:      time.Now(),
 	}
 	err = tx.Create(&recharge).Error

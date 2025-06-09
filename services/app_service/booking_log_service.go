@@ -8,6 +8,7 @@ import (
 
 	"nasa-go-admin/model/app_model"
 	"nasa-go-admin/mongodb"
+	"nasa-go-admin/utils"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ func (bls *BookingLogService) LogSchedulerStart(mode string) {
 	log := &app_model.BookingStatusLog{
 		LogType:   app_model.LogTypeSchedulerStart,
 		Message:   "订单状态自动管理调度器已启动",
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		ServerInfo: app_model.ServerInfo{
 			Hostname: hostname,
 			PID:      pid,
@@ -51,7 +52,7 @@ func (bls *BookingLogService) LogBookingActivate(booking *app_model.RoomBooking,
 		OldStatus: &oldStatus,
 		NewStatus: &newStatus,
 		Message:   fmt.Sprintf("订单已激活: %s (房间ID: %d, 用户ID: %d)", booking.BookingNo, booking.RoomID, booking.UserID),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"start_time": booking.StartTime,
 			"end_time":   booking.EndTime,
@@ -81,7 +82,7 @@ func (bls *BookingLogService) LogBookingComplete(booking *app_model.RoomBooking,
 		OldStatus: &oldStatus,
 		NewStatus: &newStatus,
 		Message:   fmt.Sprintf("订单已完成: %s (房间ID: %d, 用户ID: %d)", booking.BookingNo, booking.RoomID, booking.UserID),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"start_time":    booking.StartTime,
 			"end_time":      booking.EndTime,
@@ -111,7 +112,7 @@ func (bls *BookingLogService) LogBookingTimeout(booking *app_model.RoomBooking) 
 		OldStatus: &oldStatus,
 		NewStatus: &newStatus,
 		Message:   fmt.Sprintf("超时订单已取消: %s (用户ID: %d)", booking.BookingNo, booking.UserID),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"start_time":    booking.StartTime,
 			"end_time":      booking.EndTime,
@@ -136,7 +137,7 @@ func (bls *BookingLogService) LogBookingError(bookingID int, bookingNo string, o
 		BookingNo: bookingNo,
 		Message:   fmt.Sprintf("更新订单状态失败 (ID: %d, 操作: %s)", bookingID, operation),
 		ErrorMsg:  err.Error(),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"operation": operation,
 			"error":     err.Error(),
@@ -157,7 +158,7 @@ func (bls *BookingLogService) LogRoomError(roomID int, roomName string, operatio
 		RoomName:  roomName,
 		Message:   fmt.Sprintf("更新房间状态失败 (房间ID: %d, 操作: %s)", roomID, operation),
 		ErrorMsg:  err.Error(),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"operation": operation,
 			"error":     err.Error(),
@@ -185,7 +186,7 @@ func (bls *BookingLogService) LogManualStart(booking *app_model.RoomBooking, roo
 		OldStatus: &oldStatus,
 		NewStatus: &newStatus,
 		Message:   fmt.Sprintf("手动开始订单: %s (管理员ID: %d)", booking.BookingNo, adminID),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"admin_id":   adminID,
 			"start_time": booking.StartTime,
@@ -216,7 +217,7 @@ func (bls *BookingLogService) LogManualEnd(booking *app_model.RoomBooking, roomN
 		OldStatus: &oldStatus,
 		NewStatus: &newStatus,
 		Message:   fmt.Sprintf("手动结束订单: %s (管理员ID: %d)", booking.BookingNo, adminID),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"admin_id":      adminID,
 			"start_time":    booking.StartTime,
@@ -241,7 +242,7 @@ func (bls *BookingLogService) LogUsageError(bookingID int, bookingNo string, ope
 		BookingNo: bookingNo,
 		Message:   fmt.Sprintf("使用记录错误 (订单ID: %d, 操作: %s)", bookingID, operation),
 		ErrorMsg:  err.Error(),
-		CreatedAt: time.Now(),
+		CreatedAt: utils.GetCurrentTimeForMongo(),
 		Details: map[string]interface{}{
 			"operation": operation,
 			"error":     err.Error(),
@@ -282,9 +283,13 @@ func (bls *BookingLogService) GetLogList(req *BookingLogListReq) (*BookingLogLis
 		endTime, _ := time.Parse("2006-01-02", req.EndDate)
 		endTime = endTime.Add(24*time.Hour - time.Nanosecond) // 当天23:59:59
 
+		// 由于created_at现在是字符串，使用字符串比较
+		startTimeStr := startTime.Format("2006-01-02 15:04:05")
+		endTimeStr := endTime.Format("2006-01-02 15:04:05")
+
 		filter["created_at"] = bson.M{
-			"$gte": startTime,
-			"$lte": endTime,
+			"$gte": startTimeStr,
+			"$lte": endTimeStr,
 		}
 	}
 
@@ -488,7 +493,7 @@ type BookingLogDetail struct {
 	Message       string               `json:"message"`
 	ErrorMsg      string               `json:"error_msg"`
 	Details       interface{}          `json:"details"`
-	CreatedAt     time.Time            `json:"created_at"`
+	CreatedAt     string               `json:"created_at"`
 	ServerInfo    app_model.ServerInfo `json:"server_info"`
 }
 

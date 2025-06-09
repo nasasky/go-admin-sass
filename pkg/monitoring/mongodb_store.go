@@ -5,6 +5,7 @@ import (
 	"log"
 	"nasa-go-admin/mongodb"
 	"nasa-go-admin/pkg/goroutinepool"
+	"nasa-go-admin/utils"
 	"strconv"
 	"strings"
 	"time"
@@ -15,30 +16,30 @@ import (
 
 // HTTPMetric HTTP请求指标（简化版）
 type HTTPMetric struct {
-	Timestamp  time.Time `bson:"timestamp"`
-	Method     string    `bson:"method"`
-	Endpoint   string    `bson:"endpoint"`
-	StatusCode int       `bson:"status_code"`
-	Duration   float64   `bson:"duration"`
-	UserAgent  string    `bson:"user_agent,omitempty"`
-	ClientIP   string    `bson:"client_ip,omitempty"`
-	UserID     string    `bson:"user_id,omitempty"`
+	Timestamp  string  `bson:"timestamp"`
+	Method     string  `bson:"method"`
+	Endpoint   string  `bson:"endpoint"`
+	StatusCode int     `bson:"status_code"`
+	Duration   float64 `bson:"duration"`
+	UserAgent  string  `bson:"user_agent,omitempty"`
+	ClientIP   string  `bson:"client_ip,omitempty"`
+	UserID     string  `bson:"user_id,omitempty"`
 }
 
 // BusinessMetric 业务指标（简化版）
 type BusinessMetric struct {
-	Timestamp  time.Time `bson:"timestamp"`
-	MetricType string    `bson:"metric_type"`
-	Count      int64     `bson:"count"`
-	UserID     string    `bson:"user_id,omitempty"`
+	Timestamp  string `bson:"timestamp"`
+	MetricType string `bson:"metric_type"`
+	Count      int64  `bson:"count"`
+	UserID     string `bson:"user_id,omitempty"`
 }
 
 // DatabaseMetric 数据库指标（简化版）
 type DatabaseMetric struct {
-	Timestamp        time.Time `bson:"timestamp"`
-	ConnectionsInUse int       `bson:"connections_in_use"`
-	ConnectionsIdle  int       `bson:"connections_idle"`
-	MaxOpenConns     int       `bson:"max_open_conns"`
+	Timestamp        string `bson:"timestamp"`
+	ConnectionsInUse int    `bson:"connections_in_use"`
+	ConnectionsIdle  int    `bson:"connections_idle"`
+	MaxOpenConns     int    `bson:"max_open_conns"`
 }
 
 // getDatabaseName 根据接口路径获取合适的数据库名称
@@ -58,7 +59,7 @@ func getDatabaseName(path string) string {
 // SaveHTTPMetric 保存HTTP指标到MongoDB
 func SaveHTTPMetric(c *gin.Context, duration float64) {
 	metric := HTTPMetric{
-		Timestamp:  time.Now(),
+		Timestamp:  utils.GetCurrentTimeForMongo(),
 		Method:     c.Request.Method,
 		Endpoint:   c.FullPath(),
 		StatusCode: c.Writer.Status(),
@@ -96,7 +97,7 @@ func SaveHTTPMetric(c *gin.Context, duration float64) {
 // SaveBusinessMetric 保存业务指标到MongoDB (存储到专门的业务指标数据库)
 func SaveBusinessMetric(metricType string, userID string) {
 	metric := BusinessMetric{
-		Timestamp:  time.Now(),
+		Timestamp:  utils.GetCurrentTimeForMongo(),
 		MetricType: metricType,
 		Count:      1,
 		UserID:     userID,
@@ -118,7 +119,7 @@ func SaveBusinessMetric(metricType string, userID string) {
 // SaveDatabaseMetric 保存数据库指标到MongoDB (存储到专门的系统指标数据库)
 func SaveDatabaseMetric(connectionsInUse, connectionsIdle, maxOpenConns int) {
 	metric := DatabaseMetric{
-		Timestamp:        time.Now(),
+		Timestamp:        utils.GetCurrentTimeForMongo(),
 		ConnectionsInUse: connectionsInUse,
 		ConnectionsIdle:  connectionsIdle,
 		MaxOpenConns:     maxOpenConns,
@@ -156,10 +157,14 @@ func GetMonitoringStats(timeRange string) (map[string]interface{}, error) {
 		startTime = now.Add(-time.Hour)
 	}
 
+	// 由于时间字段现在是字符串，我们使用字符串比较
+	startTimeStr := startTime.Format("2006-01-02 15:04:05")
+	nowTimeStr := now.Format("2006-01-02 15:04:05")
+
 	filter := bson.M{
 		"timestamp": bson.M{
-			"$gte": startTime,
-			"$lte": now,
+			"$gte": startTimeStr,
+			"$lte": nowTimeStr,
 		},
 	}
 

@@ -65,10 +65,28 @@ func WebSocketConnect(c *gin.Context) {
 		return
 	}
 
-	// IP限流
+	// 强化安全验证和IP限流
 	clientIP := c.ClientIP()
+	userAgent := c.GetHeader("User-Agent")
+
+	// 验证User-Agent，防止恶意连接
+	if userAgent == "" || len(userAgent) < 10 {
+		log.Printf("⚠️ 可疑连接被拒绝: IP=%s, UserAgent=%s", clientIP, userAgent)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的客户端"})
+		return
+	}
+
+	// 检查连接频率限制
+	if !checkConnectionFrequency(clientIP) {
+		log.Printf("⚠️ 连接频率超限: IP=%s", clientIP)
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "连接过于频繁，请稍后重试"})
+		return
+	}
+
+	// IP连接数限制
 	ipConns, ipLimited := checkIPConnectionLimit(clientIP)
 	if ipLimited {
+		log.Printf("⚠️ IP连接数超限: %s, 当前连接数: %d, 最大限制: %d", clientIP, ipConns, maxConnPerIP)
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": fmt.Sprintf("IP连接数超限: %d/%d", ipConns, maxConnPerIP)})
 		return
 	}
@@ -193,6 +211,18 @@ func WebSocketConnect(c *gin.Context) {
 	default:
 		// 缓冲区已满，跳过欢迎消息
 	}
+
+	// 异步发送离线消息
+	go func() {
+		// 延迟2秒确保连接完全建立
+		time.Sleep(2 * time.Second)
+
+		offlineService := public_service.NewOfflineMessageService()
+		err := offlineService.SendOfflineMessagesToUser(userID)
+		if err != nil {
+			log.Printf("发送离线消息失败: UserID=%d, Error=%v", userID, err)
+		}
+	}()
 }
 
 // 安全启动 goroutine，包含恢复机制
@@ -211,7 +241,8 @@ func safeGoroutine(fn func()) {
 
 // IP连接限制管理 - 使用sync.Map避免竞态条件
 var (
-	ipConnections sync.Map
+	ipConnections     sync.Map
+	ipConnectionTimes sync.Map // 记录IP连接时间，用于频率限制
 	// 添加定期清理机制
 	cleanupTicker *time.Ticker
 )
@@ -310,4 +341,38 @@ func getIPConnectionCounts() map[string]int {
 		return true
 	})
 	return result
+}
+
+// checkConnectionFrequency 检查IP连接频率限制
+func checkConnectionFrequency(ip string) bool {
+	const maxConnectionsPerMinute = 10 // 每分钟最多10个连接
+	const timeWindow = time.Minute
+
+	now := time.Now()
+
+	// 获取该IP的连接时间列表
+	value, exists := ipConnectionTimes.Load(ip)
+	var connectionTimes []time.Time
+	if exists {
+		connectionTimes = value.([]time.Time)
+	}
+
+	// 移除超过时间窗口的连接记录
+	var validTimes []time.Time
+	for _, t := range connectionTimes {
+		if now.Sub(t) < timeWindow {
+			validTimes = append(validTimes, t)
+		}
+	}
+
+	// 检查是否超过频率限制
+	if len(validTimes) >= maxConnectionsPerMinute {
+		return false
+	}
+
+	// 记录新的连接时间
+	validTimes = append(validTimes, now)
+	ipConnectionTimes.Store(ip, validTimes)
+
+	return true
 }

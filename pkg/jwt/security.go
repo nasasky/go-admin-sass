@@ -50,7 +50,7 @@ func LoadJWTConfig() *JWTConfig {
 
 	return &JWTConfig{
 		SigningKey:      signingKey,
-		AccessTokenTTL:  time.Hour * 2,      // 访问令牌2小时
+		AccessTokenTTL:  time.Hour * 24,     // 访问令牌24小时
 		RefreshTokenTTL: time.Hour * 24 * 7, // 刷新令牌7天
 		Issuer:          "nasa-go-admin",
 	}
