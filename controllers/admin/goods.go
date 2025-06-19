@@ -58,13 +58,7 @@ func GetGoodsList(c *gin.Context) {
 		Resp.Err(c, 20001, err.Error())
 		return
 	}
-	// 调用公共函数获取 parent_id
-	parentId, err := utils.GetParentId(c)
-	if err != nil {
-		Resp.Err(c, 20001, err.Error())
-		return
-	}
-	fmt.Println("parentId:", parentId)
+
 	list, err := goodsService.GetGoodsList(c, params)
 	if err != nil {
 		Resp.Err(c, 20001, err.Error())

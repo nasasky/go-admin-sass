@@ -9,6 +9,9 @@ type SettingList struct {
 	Appid      string    `json:"appid"`
 	Secret     string    `json:"secret"`
 	Tips       string    `json:"tips"`
+	Endpoint   string    `json:"endpoint"`
+	BucketName string    `json:"bucket_name"`
+	BaseUrl    string    `json:"base_url"`
 	Type       string    `json:"type"`
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time"`

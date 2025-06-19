@@ -253,6 +253,7 @@ func (s *TenantsService) GetRoutes(c *gin.Context, id int) ([]admin_model.Permis
 
 	// 获取用户权限菜单树
 	userPermissions, err := permissionService.GetUserPermissions(c, id)
+	fmt.Println(userPermissions)
 	if err != nil {
 		log.Printf("Failed to get user permissions: %v", err)
 		return nil, err

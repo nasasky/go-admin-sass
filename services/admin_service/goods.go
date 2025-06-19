@@ -5,6 +5,7 @@ import (
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model/admin_model"
+	"nasa-go-admin/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,6 +34,17 @@ func (s *GoodsService) AddGoods(c *gin.Context, goods admin_model.Goods) (int, e
 func (s *GoodsService) GetGoodsList(c *gin.Context, params inout.GetGoodsListReq) (interface{}, error) {
 	var data []admin_model.Goods
 	var total int64
+	// 调用公共函数获取 parent_id
+	parentId, err := utils.GetParentId(c)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("parentId:", parentId)
+	//如果传入的 parentId 为 0，则使用当前用户的 ID
+	if parentId == 0 {
+		parentId = c.GetInt("uid")
+	}
+	fmt.Println("最终 parentId:", parentId)
 
 	// 设置默认分页参数
 	params.Page = max(params.Page, 1)
@@ -43,13 +55,13 @@ func (s *GoodsService) GetGoodsList(c *gin.Context, params inout.GetGoodsListReq
 		applyGoodsNameFilter(params.GoodsName),
 		applyStatusFilter(params.Status),
 		applyCategoryFilter(params.CategoryId),
-	).Where("isdelete != ?", 1).Order("create_time DESC")
+	).Where("isdelete != ? AND user_id = ?", 1, parentId).Order("create_time DESC")
 
 	// 计算偏移量
 	offset := (params.Page - 1) * params.PageSize
 
 	// 执行查询
-	err := query.Count(&total).Offset(offset).Limit(params.PageSize).Find(&data).Error
+	err = query.Count(&total).Offset(offset).Limit(params.PageSize).Find(&data).Error
 	if err != nil {
 		return nil, err
 	}
