@@ -1,57 +1,92 @@
 package admin_service
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/model/app_model"
+	"nasa-go-admin/redis"
 	"nasa-go-admin/utils"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type RevenueService struct{}
 
+const (
+	// 缓存key前缀
+	revenueCacheKeyPrefix = "revenue:list:"
+	// 缓存过期时间
+	revenueCacheExpiration = 30 * time.Minute
+)
+
 // GetRevenueList 获取收入列表
 func (s *RevenueService) GetRevenueList(c *gin.Context, params inout.GetRevenueListReq) (interface{}, error) {
-	var data []admin_model.Revenue
-	var total int64
-
 	// 设置默认分页参数
 	params.Page = max(params.Page, 1)
 	params.PageSize = max(params.PageSize, 10)
 
 	parentId, err := utils.GetParentId(c)
 	if err != nil {
-		Resp.Err(c, 20001, err.Error())
-		return nil, nil
+		return nil, fmt.Errorf("获取租户ID失败: %w", err)
 	}
-	fmt.Println(parentId)
 
-	// 先尝试生成统计数据（如果表为空的话）
-	s.ensureRevenueDataExists(parentId)
+	// 构建缓存key
+	cacheKey := fmt.Sprintf("%s%d:%d:%d:%s:%s:%s",
+		revenueCacheKeyPrefix,
+		parentId,
+		params.Page,
+		params.PageSize,
+		params.Start,
+		params.End,
+		params.Search,
+	)
 
-	// 构建查询
-	query := db.Dao.Model(&admin_model.Revenue{}).Scopes(
-		applyTenantsIdFilter(parentId),
-		applyStatDateFilter(params.Start, params.End),
-		applySearchFilter(params.Search),
-	).Order("stat_date DESC")
+	// 尝试从缓存获取数据
+	if response, err := s.getFromCache(c, cacheKey); err == nil {
+		return response, nil
+	}
+
+	// 如果缓存未命中，则从数据库查询
+	var total int64
+	data := make([]admin_model.Revenue, 0) // 初始化为空数组
+
+	// 构建基础查询，只选择需要的字段
+	query := db.Dao.Model(&admin_model.Revenue{}).
+		Select("id, tenants_id, stat_date, total_orders, total_revenue, actual_revenue, paid_orders").
+		Where("tenants_id = ?", parentId)
+
+	// 添加日期范围过滤
+	if params.Start != "" && params.End != "" {
+		query = query.Where("stat_date BETWEEN ? AND ?", params.Start, params.End)
+	}
+
+	// 添加搜索条件（如果有）
+	if params.Search != "" {
+		query = query.Where("stat_date = ?", params.Search)
+	}
+
 	// 计算偏移量
 	offset := (params.Page - 1) * params.PageSize
-	// 执行查询
-	err = query.Count(&total).Offset(offset).Limit(params.PageSize).Find(&data).Error
+
+	// 使用强制索引并执行查询
+	err = query.Table("merchant_revenue_stats FORCE INDEX (idx_stat_date)").
+		Order("stat_date DESC").
+		Count(&total).
+		Offset(offset).
+		Limit(params.PageSize).
+		Find(&data).Error
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("查询收益列表失败: %w", err)
 	}
+
 	// 格式化数据
-	formattedData := []inout.RevenueRepItems{}
-	if len(data) > 0 {
-		formattedData = formatRevenueData(data)
-	}
+	formattedData := formatRevenueData(data)
 
 	// 构建响应
 	response := map[string]interface{}{
@@ -60,18 +95,65 @@ func (s *RevenueService) GetRevenueList(c *gin.Context, params inout.GetRevenueL
 		"page":     params.Page,
 		"pageSize": params.PageSize,
 	}
+
+	// 异步更新缓存
+	go func() {
+		if err := s.setCache(context.Background(), cacheKey, response); err != nil {
+			fmt.Printf("缓存收益列表数据失败: %v\n", err)
+		}
+	}()
+
 	return response, nil
 }
 
-// ensureRevenueDataExists 确保收益统计数据存在，如果不存在则生成
-func (s *RevenueService) ensureRevenueDataExists(tenantsId int) {
-	var count int64
-	db.Dao.Model(&admin_model.Revenue{}).Where("tenants_id = ?", tenantsId).Count(&count)
-
-	// 如果统计表为空，则生成最近30天的数据
-	if count == 0 {
-		s.GenerateRevenueStats(tenantsId, 30)
+// getFromCache 从缓存获取数据
+func (s *RevenueService) getFromCache(ctx context.Context, key string) (map[string]interface{}, error) {
+	rdb := redis.GetClient()
+	if rdb == nil {
+		return nil, fmt.Errorf("Redis client not initialized")
 	}
+
+	data, err := rdb.Get(ctx, key).Bytes()
+	if err != nil {
+		if err == redis.ErrNil {
+			return nil, fmt.Errorf("cache miss")
+		}
+		return nil, err
+	}
+
+	var response map[string]interface{}
+	if err := json.Unmarshal(data, &response); err != nil {
+		return nil, err
+	}
+
+	// 确保items字段始终是数组
+	if response["items"] == nil {
+		response["items"] = make([]inout.RevenueRepItems, 0)
+	}
+
+	return response, nil
+}
+
+// setCache 设置缓存
+func (s *RevenueService) setCache(ctx context.Context, key string, data interface{}) error {
+	rdb := redis.GetClient()
+	if rdb == nil {
+		return fmt.Errorf("Redis client not initialized")
+	}
+
+	// 确保data中的items字段不为null
+	if dataMap, ok := data.(map[string]interface{}); ok {
+		if dataMap["items"] == nil {
+			dataMap["items"] = make([]inout.RevenueRepItems, 0)
+		}
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return rdb.Set(ctx, key, jsonData, revenueCacheExpiration).Err()
 }
 
 // GenerateRevenueStats 生成收益统计数据
@@ -128,7 +210,7 @@ func (s *RevenueService) generateDayRevenueStats(tenantsId int, statDate string)
 		StatDate:      statDate,
 		PeriodStart:   statDate,
 		PeriodEnd:     statDate,
-		TotalOrder:    stats.TotalOrders,
+		TotalOrders:   stats.TotalOrders,
 		TotalRevenue:  stats.TotalRevenue,
 		ActualRevenue: stats.ActualRevenue,
 		PaidOrders:    stats.PaidOrders,
@@ -165,7 +247,7 @@ func (s *RevenueService) updateDayRevenueStats(tenantsId int, statDate string) e
 
 	// 更新统计记录
 	updates := map[string]interface{}{
-		"total_order":    stats.TotalOrders,
+		"total_orders":   stats.TotalOrders,
 		"total_revenue":  stats.TotalRevenue,
 		"actual_revenue": stats.ActualRevenue,
 		"paid_orders":    stats.PaidOrders,
@@ -182,38 +264,9 @@ func (s *RevenueService) RefreshRevenueStats(tenantsId int, days int) error {
 	return s.GenerateRevenueStats(tenantsId, days)
 }
 
-// applyTenantsIdFilter 应用租户ID过滤器
-func applyTenantsIdFilter(tenantsId int) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		return db.Where("tenants_id = ?", tenantsId)
-	}
-
-}
-
-// applyStatDateFilter 应用统计日期过滤器
-func applyStatDateFilter(start, end string) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		if start != "" && end != "" {
-			return db.Where("stat_date BETWEEN ? AND ?", start, end)
-		}
-		return db
-	}
-
-}
-
-// applySearchFilter 应用搜索过滤器
-func applySearchFilter(search string) func(db *gorm.DB) *gorm.DB {
-	return func(db *gorm.DB) *gorm.DB {
-		if search != "" {
-			return db.Where("stat_date LIKE ?", "%"+search+"%")
-		}
-		return db
-	}
-}
-
 // formatRevenueData 格式化收入数据
 func formatRevenueData(data []admin_model.Revenue) []inout.RevenueRepItems {
-	var formattedData []inout.RevenueRepItems
+	formattedData := make([]inout.RevenueRepItems, 0) // 初始化为空数组而不是nil
 	for _, item := range data {
 		formattedData = append(formattedData, inout.RevenueRepItems{
 			Id:            item.Id,
@@ -221,7 +274,7 @@ func formatRevenueData(data []admin_model.Revenue) []inout.RevenueRepItems {
 			StatDate:      item.StatDate,
 			PeriodStart:   item.PeriodStart,
 			PeriodEnd:     item.PeriodEnd,
-			TotalOrder:    item.TotalOrder,
+			TotalOrders:   item.TotalOrders,
 			TotalRevenue:  item.TotalRevenue,
 			ActualRevenue: item.ActualRevenue,
 			PaidOrders:    item.PaidOrders,

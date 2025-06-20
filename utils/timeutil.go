@@ -4,7 +4,6 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"reflect"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -221,18 +220,18 @@ func FormatTimeFieldsForResponse(data interface{}) interface{} {
 			mapVal := val.MapIndex(key)
 
 			// 特殊处理时间字段
-			if key.Kind() == reflect.String {
-				keyStr := key.String()
-				if strings.Contains(strings.ToLower(keyStr), "time") ||
-					strings.Contains(strings.ToLower(keyStr), "timestamp") {
-
-					if timeStr, ok := mapVal.Interface().(string); ok {
-						formatted := FormatMongoTime(timeStr)
-						newMap.SetMapIndex(key, reflect.ValueOf(formatted))
-						continue
-					}
-				}
-			}
+			//if key.Kind() == reflect.String {
+			//	keyStr := key.String()
+			//	if strings.Contains(strings.ToLower(keyStr), "time") ||
+			//		strings.Contains(strings.ToLower(keyStr), "timestamp") {
+			//
+			//		if timeStr, ok := mapVal.Interface().(string); ok {
+			//			formatted := FormatMongoTime(timeStr)
+			//			newMap.SetMapIndex(key, reflect.ValueOf(formatted))
+			//			continue
+			//		}
+			//	}
+			//}
 
 			newMap.SetMapIndex(key, reflect.ValueOf(FormatTimeFieldsForResponse(mapVal.Interface())))
 		}

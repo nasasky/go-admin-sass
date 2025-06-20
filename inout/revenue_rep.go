@@ -14,7 +14,7 @@ type RevenueRepItems struct {
 	StatDate      string  `json:"stat_date"`
 	PeriodStart   string  `json:"period_start"`
 	PeriodEnd     string  `json:"period_end"`
-	TotalOrder    int     `json:"total_order"`
+	TotalOrders   int     `json:"total_orders"`
 	TotalRevenue  float64 `json:"total_revenue"`
 	ActualRevenue float64 `json:"actual_revenue"`
 	PaidOrders    int     `json:"paid_orders"`

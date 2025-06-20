@@ -8,7 +8,7 @@ type Revenue struct {
 	StatDate      string    `json:"stat_date" gorm:"column:stat_date"`
 	PeriodStart   string    `json:"period_start" gorm:"column:period_start"`
 	PeriodEnd     string    `json:"period_end" gorm:"column:period_end"`
-	TotalOrder    int       `json:"total_order" gorm:"column:total_order"`
+	TotalOrders   int       `json:"total_orders" gorm:"column:total_orders"`
 	TotalRevenue  float64   `json:"total_revenue" gorm:"column:total_revenue"`
 	ActualRevenue float64   `json:"actual_revenue" gorm:"column:actual_revenue"`
 	PaidOrders    int       `json:"paid_orders" gorm:"column:paid_orders"`

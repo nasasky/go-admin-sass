@@ -118,4 +118,14 @@ GROUP BY user_id;
    - 监控慢查询日志
    - 定期检查索引碎片率
    - 监控数据库连接池使用情况
-*/ 
+*/
+
+-- 收益统计表优化索引
+-- 复合索引：租户ID + 统计日期（用于分页查询）
+CREATE INDEX IF NOT EXISTS idx_revenue_tenants_date ON merchant_revenue_stats(tenants_id, stat_date DESC);
+
+-- 复合索引：租户ID + 时间范围查询
+CREATE INDEX IF NOT EXISTS idx_revenue_tenants_period ON merchant_revenue_stats(tenants_id, period_start, period_end);
+
+-- 统计日期索引（用于搜索）
+CREATE INDEX IF NOT EXISTS idx_revenue_stat_date ON merchant_revenue_stats(stat_date); 
