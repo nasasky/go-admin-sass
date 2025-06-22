@@ -245,5 +245,16 @@ func InitAdmin(r *gin.Engine) {
 		//上传图片文件等到oss
 		authGroup.POST("/upload", admin.UploadFile)
 
+		//创建宠物平台banner轮播图
+		authGroup.POST("/banner/add", middleware.ValidationMiddleware(&inout.AddBannerReq{}), admin.AddBanner)
+		//获取轮播图列表
+		authGroup.GET("/banner/list", admin.GetBannerList)
+		//获取轮播图详情
+		authGroup.GET("/banner/detail/:id", admin.GetBannerDetail)
+		//修改轮播图
+		authGroup.PUT("/banner/update", middleware.ValidationMiddleware(&inout.UpdateBannerReq{}), admin.UpdateBanner)
+		//删除轮播图
+		authGroup.DELETE("/banner/delete/:id", admin.DeleteBanner)
+
 	}
 }

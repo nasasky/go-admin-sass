@@ -16,6 +16,8 @@ func InitApp(r *gin.Engine) {
 	// 不需要验证和不记录日志的公开接口
 	publicGroup := appGroup.Group("/")
 	{
+		//获取轮播图列表
+		publicGroup.GET("/banner/list", app.GetBannerList)
 		//商品列表
 		publicGroup.GET("/goods/list", app.GetGoodsList)
 		//商品详情

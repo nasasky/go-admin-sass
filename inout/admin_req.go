@@ -1,5 +1,9 @@
 package inout
 
+import (
+	"time"
+)
+
 type AddTenantsReq struct {
 	Username string `form:"username" binding:"required"`
 	Password string `form:"password" binding:"required"`
@@ -209,4 +213,45 @@ type EmployeeItem struct {
 	Sex        int    `json:"sex"`
 	CreateTime string `json:"create_time"`
 	UpdateTime string `json:"update_time"`
+}
+
+type AddBannerReq struct {
+	Title    string `form:"title" binding:"required"`
+	ImageUrl string `form:"image_url" binding:"required"`
+	LinkUrl  string `form:"link_url"`
+	Sort     int    `form:"sort"`
+	Status   int    `form:"status"`
+}
+
+type UpdateBannerReq struct {
+	Id       int    `form:"id" binding:"required"`
+	Title    string `form:"title"`
+	ImageUrl string `form:"image_url"`
+	LinkUrl  string `form:"link_url"`
+	Sort     int    `form:"sort"`
+	Status   int    `form:"status"`
+}
+
+type GetBannerListReq struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Search   string `form:"search"`
+}
+
+type BannerItem struct {
+	Id         int       `json:"id"`
+	Title      string    `json:"title"`
+	ImageUrl   string    `json:"image_url"`
+	LinkUrl    string    `json:"link_url"`
+	Sort       int       `json:"sort"`
+	Status     int       `json:"status"`
+	CreateTime time.Time `json:"create_time"`
+	UpdateTime time.Time `json:"update_time"`
+}
+
+type BannerListResponse struct {
+	Total    int64        `json:"total"`
+	Page     int          `json:"page"`
+	PageSize int          `json:"page_size"`
+	Items    []BannerItem `json:"items"`
 }
