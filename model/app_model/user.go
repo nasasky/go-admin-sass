@@ -24,9 +24,10 @@ type LoginUserApp struct {
 	Openid     string    `json:"openid"`
 	UnionID    string    `json:"unionid"`
 	Username   string    `json:"username"`
-	Password   string    `json:"password"`
+	Password   string    `json:"passworßd"`
 	Enable     bool      `json:"enable"`
 	Phone      string    `json:"phone"`
+	Avatar     string    `json:"avatar"`
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time"`
 }
