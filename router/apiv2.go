@@ -24,6 +24,10 @@ func InitApp(r *gin.Engine) {
 		publicGroup.GET("/goods/detail", app.GetGoodsDetail)
 		// 订单系统健康检查（公开接口，用于监控）
 		publicGroup.GET("/order/health", app.GetOrderHealthStatus)
+		// 获取帖子列表（公开）
+		publicGroup.GET("/posts", app.GetPostList)
+		// 获取帖子详情（公开）
+		publicGroup.GET("/posts/:id", app.GetPostDetail)
 	}
 
 	// 使用通用请求日志中间件的组
@@ -52,6 +56,17 @@ func InitApp(r *gin.Engine) {
 		authGroup := logGroup.Group("/")
 		authGroup.Use(middleware.AppJWTAuth())
 		{
+			// ========== 帖子管理接口 ==========
+			// 创建帖子
+			authGroup.POST("/posts", app.CreatePost)
+			// 更新帖子
+			authGroup.PUT("/posts", app.UpdatePost)
+			// 删除帖子
+			authGroup.DELETE("/posts/:id", app.DeletePost)
+
+			//上传文件
+			authGroup.POST("/upload", app.UploadFile)
+
 			//用户信息
 			authGroup.GET("/user/info", app.GetUserInfo)
 			//修改用户信息
