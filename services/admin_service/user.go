@@ -356,6 +356,12 @@ func (s *TenantsService) AddMenu(c *gin.Context, params admin_model.PermissionMe
 		return 0, err
 	}
 
+	// 清除权限缓存
+	permissionService := NewPermissionService()
+	if err := permissionService.InvalidateUserPermissionCache(c, userID); err != nil {
+		log.Printf("Failed to invalidate user permission cache: %v", err)
+	}
+
 	// 返回新菜单的ID
 	return params.Id, nil
 }
@@ -395,15 +401,22 @@ func (s *TenantsService) GetMenuDetail(c *gin.Context, id int) (admin_model.Perm
 // UpdateMenu
 func (s *TenantsService) UpdateMenu(c *gin.Context, id int, params admin_model.PermissionMenu) (int, error) {
 	//修改菜单信息
-
 	err := db.Dao.Model(&admin_model.PermissionMenu{}).Where("id = ?", id).Updates(params).Error
 	if err != nil {
 		return 0, err
 	}
 
+	// 清除权限缓存
+	userId, _ := c.Get("uid")
+	if userID, ok := userId.(int); ok {
+		permissionService := NewPermissionService()
+		if err := permissionService.InvalidateUserPermissionCache(c, userID); err != nil {
+			log.Printf("Failed to invalidate user permission cache: %v", err)
+		}
+	}
+
 	// 更新 路由id
 	return params.Id, nil
-
 }
 
 func (s *TenantsService) DeleteMenu(c *gin.Context, ids []int) error {
@@ -438,7 +451,20 @@ func (s *TenantsService) DeleteMenu(c *gin.Context, ids []int) error {
 		return nil
 	})
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	// 清除权限缓存
+	userId, _ := c.Get("uid")
+	if userID, ok := userId.(int); ok {
+		permissionService := NewPermissionService()
+		if err := permissionService.InvalidateUserPermissionCache(c, userID); err != nil {
+			log.Printf("Failed to invalidate user permission cache: %v", err)
+		}
+	}
+
+	return nil
 }
 
 // 递归查找所有子菜单ID
@@ -515,8 +541,14 @@ func filterEmptyFields(permissList []admin_model.PermissionUser) []admin_model.P
 	for _, perm := range permissList {
 		perm.Children = filterEmptyFields(perm.Children)
 		filteredPerm := filterEmptyFieldsFromStruct(perm)
+		// 只过滤类型为BUTTON的菜单，保留其他所有菜单（包括主目录菜单）
 		if filteredPerm.Type != "BUTTON" {
-			filteredList = append(filteredList, filteredPerm)
+			// 如果是主目录菜单（没有子菜单），确保它被保留
+			if len(perm.Children) == 0 && filteredPerm.ParentId == 0 {
+				filteredList = append(filteredList, filteredPerm)
+			} else {
+				filteredList = append(filteredList, filteredPerm)
+			}
 		}
 	}
 	return filteredList
