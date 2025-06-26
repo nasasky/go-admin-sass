@@ -2,11 +2,13 @@ package admin_service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/mongodb"
+	"nasa-go-admin/redis"
 	"nasa-go-admin/utils"
 	"time"
 
@@ -429,29 +431,66 @@ func formatDictTypeDataDetail(data []admin_model.DictDetail) []map[string]interf
 
 // GetAllDictType 获取所有字典类型及其对应的字典值
 func (s *SystemService) GetAllDictType(c *gin.Context) (interface{}, error) {
-	// 查询所有字典类型
+	// 1. 尝试从缓存获取数据
+	cacheKey := "system:dict:all"
+	redisClient := redis.GetClient()
+	if redisClient != nil {
+		cachedData, err := redisClient.Get(context.Background(), cacheKey).Result()
+		if err == nil {
+			var result map[string][]map[string]interface{}
+			if err := json.Unmarshal([]byte(cachedData), &result); err == nil {
+				return result, nil
+			}
+		}
+	}
+
+	// 2. 使用一次JOIN查询获取所有数据
 	var dictTypes []admin_model.DictType
-	err := db.Dao.Model(&admin_model.DictType{}).Find(&dictTypes).Error
-	if err != nil {
+	var dictDetails []admin_model.DictDetail
+
+	// 2.1 首先获取所有字典类型
+	if err := db.Dao.Model(&admin_model.DictType{}).
+		Where("del_flag != ?", "T").
+		Find(&dictTypes).Error; err != nil {
 		return nil, fmt.Errorf("查询字典类型失败: %w", err)
 	}
 
-	// 构建返回结果
-	result := make(map[string][]map[string]interface{})
-
-	for _, dictType := range dictTypes {
-		// 查询每个字典类型对应的字典值
-		var dictDetails []admin_model.DictDetail
-		err := db.Dao.Model(&admin_model.DictDetail{}).
-			Where("sys_dict_type_id = ?", dictType.Id).
-			Find(&dictDetails).Error
-		if err != nil {
-			return nil, fmt.Errorf("查询字典详情失败: %w", err)
+	// 2.2 如果有字典类型，一次性获取所有相关的字典值
+	if len(dictTypes) > 0 {
+		var typeIds []int
+		for _, dt := range dictTypes {
+			typeIds = append(typeIds, dt.Id)
 		}
 
-		// 构建字典值列表
-		detailList := make([]map[string]interface{}, 0)
-		for _, detail := range dictDetails {
+		if err := db.Dao.Model(&admin_model.DictDetail{}).
+			Where("sys_dict_type_id IN ?", typeIds).
+			Where("del_flag != ?", "T").
+			Find(&dictDetails).Error; err != nil {
+			return nil, fmt.Errorf("查询字典详情失败: %w", err)
+		}
+	}
+
+	// 3. 构建结果Map
+	result := make(map[string][]map[string]interface{})
+
+	// 3.1 创建字典类型的快速查找map
+	typeMap := make(map[int]admin_model.DictType)
+	for _, dt := range dictTypes {
+		typeMap[dt.Id] = dt
+	}
+
+	// 3.2 按字典类型分组字典值
+	detailMap := make(map[int][]admin_model.DictDetail)
+	for _, detail := range dictDetails {
+		detailMap[detail.SysDictTypeId] = append(detailMap[detail.SysDictTypeId], detail)
+	}
+
+	// 3.3 构建最终结果
+	for _, dictType := range dictTypes {
+		details := detailMap[dictType.Id]
+		detailList := make([]map[string]interface{}, 0, len(details))
+
+		for _, detail := range details {
 			detailList = append(detailList, map[string]interface{}{
 				"id":                detail.Id,
 				"sysDictTypeId":     detail.SysDictTypeId,
@@ -469,8 +508,13 @@ func (s *SystemService) GetAllDictType(c *gin.Context) (interface{}, error) {
 			})
 		}
 
-		// 将字典类型和对应的字典值加入结果
 		result[dictType.TypeCode] = detailList
+	}
+
+	// 4. 将结果存入缓存
+	if jsonData, err := json.Marshal(result); err == nil && redisClient != nil {
+		// 设置缓存，有效期5分钟
+		redisClient.Set(context.Background(), cacheKey, string(jsonData), 5*time.Minute)
 	}
 
 	return result, nil
