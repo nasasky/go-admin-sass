@@ -146,6 +146,12 @@ func InitAdmin(r *gin.Engine) {
 		//获取角色详情
 		authGroup.GET("/role/detail", admin.GetRoleDetail)
 
+		// 系统信息管理
+		authGroup.POST("/system/info/add", admin.AddSystemInfo)
+		authGroup.PUT("/system/info/update", admin.UpdateSystemInfo)
+		authGroup.GET("/system/info", admin.GetSystemInfo)
+		authGroup.GET("/system/info/list", admin.GetSystemInfoList)
+
 		//删除角色
 		authGroup.DELETE("/role/delete/:id", admin.DeleteRole)
 		//添加文章活动

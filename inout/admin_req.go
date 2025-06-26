@@ -255,3 +255,45 @@ type BannerListResponse struct {
 	PageSize int          `json:"page_size"`
 	Items    []BannerItem `json:"items"`
 }
+
+type SystemInfoReq struct {
+	SystemName  string `form:"system_name" binding:"required" json:"system_name"`   // 系统名称
+	SystemTitle string `form:"system_title" binding:"required" json:"system_title"` // 系统标题
+	IcpNumber   string `form:"icp_number" json:"icp_number"`                        // 备案号
+	Copyright   string `form:"copyright" json:"copyright"`                          // 版权信息
+	Status      int    `form:"status" json:"status"`                                // 状态：1-启用 0-禁用
+}
+
+type UpdateSystemInfoReq struct {
+	Id          int    `form:"id" binding:"required" json:"id"`
+	SystemName  string `form:"system_name" json:"system_name"`   // 系统名称
+	SystemTitle string `form:"system_title" json:"system_title"` // 系统标题
+	IcpNumber   string `form:"icp_number" json:"icp_number"`     // 备案号
+	Copyright   string `form:"copyright" json:"copyright"`       // 版权信息
+	Status      int    `form:"status" json:"status"`             // 状态：1-启用 0-禁用
+}
+
+type SystemInfoResponse struct {
+	Id          int       `json:"id"`
+	SystemName  string    `json:"system_name"`  // 系统名称
+	SystemTitle string    `json:"system_title"` // 系统标题
+	IcpNumber   string    `json:"icp_number"`   // 备案号
+	Copyright   string    `json:"copyright"`    // 版权信息
+	Status      int       `json:"status"`       // 状态：1-启用 0-禁用
+	CreateTime  time.Time `json:"create_time"`
+	UpdateTime  time.Time `json:"update_time"`
+}
+
+type GetSystemInfoListReq struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Search   string `form:"search"`
+	OrderBy  string `form:"order_by"`
+}
+
+type SystemInfoListResponse struct {
+	Total    int64                `json:"total"`
+	Page     int                  `json:"page"`
+	PageSize int                  `json:"page_size"`
+	Items    []SystemInfoResponse `json:"items"`
+}
