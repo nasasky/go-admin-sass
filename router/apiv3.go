@@ -43,6 +43,9 @@ func InitAdmin(r *gin.Engine) {
 	//获取用户端操作日志
 	noAuthGroup.GET("/system/user/log", admin.GetUserLog)
 
+	// 获取系统信息（不需要验证token）
+	noAuthGroup.GET("/system/info", admin.GetSystemInfo)
+
 	// 需要验证 Token 的路由组
 	authGroup := r.Group("/api/admin")
 	authGroup.Use(middleware.AdminJWTAuth()) // 应用统一管理员JWT中间件
@@ -149,7 +152,6 @@ func InitAdmin(r *gin.Engine) {
 		// 系统信息管理
 		authGroup.POST("/system/info/add", admin.AddSystemInfo)
 		authGroup.PUT("/system/info/update", admin.UpdateSystemInfo)
-		authGroup.GET("/system/info", admin.GetSystemInfo)
 		authGroup.GET("/system/info/list", admin.GetSystemInfoList)
 
 		//删除角色
