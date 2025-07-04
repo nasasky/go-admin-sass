@@ -16,15 +16,11 @@ type AddRolexReq struct {
 	Pessimism string `form:"pessimism"`
 }
 
-// 编辑角色
+// 编辑角色 - 只修改名称和描述
 type UpdateRole struct {
-	Id        int    `json:"id" binding:"required"`
-	RoleName  string `json:"role_name" binding:"required"`
-	RoleDesc  string `json:"role_desc" binding:"required"`
-	UserId    int    `json:"user_id"`
-	Enable    int    `json:"enable"`
-	Sort      int    `json:"sort"`
-	Pessimism string `json:"pessimism"`
+	Id       int    `json:"id" binding:"required"`
+	RoleName string `json:"role_name" binding:"required"`
+	RoleDesc string `json:"role_desc" binding:"required"`
 }
 
 // 设置角色权限
@@ -56,8 +52,14 @@ type RoleListItem struct {
 	Enable int `json:"enable"`
 	// 排序
 	Sort int `json:"sort"`
-	// 创建时间
-
+	// 创建人ID
+	CreatorId int `json:"creator_id"`
+	// 创建人用户名
+	CreatorName string `json:"creator_name"`
+	// 创建人类型
+	CreatorType int `json:"creator_type"`
+	// 创建人类型描述
+	CreatorTypeDesc string `json:"creator_type_desc"`
 }
 
 type GetRoleListResp struct {

@@ -252,17 +252,23 @@ func employeeFilterByUserType(userType int) func(db *gorm.DB) *gorm.DB {
 
 // 构建统一的员工列表响应
 func buildEmployeeResponse(data []admin_model.Employee, total int64, params inout.ListpageReq) inout.GetEmployeeListResp {
+	items := formatEmployeeData(data)
+	// 确保Items字段始终是数组而不是null
+	if items == nil {
+		items = make([]inout.EmployeeItem, 0)
+	}
+
 	return inout.GetEmployeeListResp{
 		Total:    total,
 		Page:     params.Page,
 		PageSize: params.PageSize,
-		Items:    formatEmployeeData(data),
+		Items:    items,
 	}
 }
 
 // 格式化员工数据
 func formatEmployeeData(data []admin_model.Employee) []inout.EmployeeItem {
-	var result []inout.EmployeeItem
+	result := make([]inout.EmployeeItem, 0) // 初始化为空数组而不是nil
 	for _, item := range data {
 		result = append(result, inout.EmployeeItem{
 			Id:         item.Id,

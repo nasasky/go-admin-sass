@@ -98,44 +98,65 @@ func CloseRedis() error {
 
 // 存储用户信息，包括 token 和其他字段
 func StoreUserInfo(userID string, userInfo map[string]interface{}, expiration time.Duration) error {
-	key := "user_info:" + userID // 添加前缀
+	key := fmt.Sprintf("user_info:%s", userID) // 统一使用 user_info: 前缀
 	ctx := context.Background()
+
+	// 将所有值转换为字符串
+	stringInfo := make(map[string]interface{})
+	for k, v := range userInfo {
+		stringInfo[k] = fmt.Sprintf("%v", v)
+	}
+
 	// 使用 HMSET 存储用户信息
-	err := rdb.HMSet(ctx, key, userInfo).Err()
+	err := rdb.HMSet(ctx, key, stringInfo).Err()
 	if err != nil {
+		log.Printf("Failed to store user info for user %s: %v", userID, err)
 		return fmt.Errorf("failed to store user info: %v", err)
 	}
+
 	// 设置过期时间
 	err = rdb.Expire(ctx, key, expiration).Err()
 	if err != nil {
+		log.Printf("Failed to set expiration for user %s: %v", userID, err)
 		return fmt.Errorf("failed to set expiration for user info: %v", err)
 	}
+
+	log.Printf("Successfully stored user info for user %s", userID)
 	return nil
 }
 
 // 获取用户信息
 func GetUserInfo(userID string) (map[string]string, error) {
-	key := "user_info:" + userID // 添加前缀
+	key := fmt.Sprintf("user_info:%s", userID) // 统一使用 user_info: 前缀
 	ctx := context.Background()
+
 	// 使用 HGETALL 获取用户信息
 	userInfo, err := rdb.HGetAll(ctx, key).Result()
 	if err != nil {
+		log.Printf("Failed to get user info for user %s: %v", userID, err)
 		return nil, fmt.Errorf("failed to get user info: %v", err)
 	}
 	if len(userInfo) == 0 {
+		log.Printf("No user info found for user %s", userID)
 		return nil, fmt.Errorf("user info not found")
 	}
+
+	log.Printf("Successfully retrieved user info for user %s", userID)
 	return userInfo, nil
 }
 
 // 删除用户信息
 func DeleteUserInfo(userID string) error {
-	key := "user_info:" + userID // 添加前缀
+	key := fmt.Sprintf("user_info:%s", userID) // 统一使用 user_info: 前缀
 	ctx := context.Background()
+
 	err := rdb.Del(ctx, key).Err()
 	if err != nil {
+		log.Printf("Failed to delete user info for user %s: %v", userID, err)
 		return fmt.Errorf("failed to delete user info: %v", err)
 	}
+
+	log.Printf("Successfully deleted user info for user %s", userID)
 	return nil
 }
 

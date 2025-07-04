@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"nasa-go-admin/pkg/websocket"
 	"nasa-go-admin/redis"
 	"time"
 )
@@ -134,6 +135,7 @@ func (oms *OfflineMessageService) SendOfflineMessagesToUser(userID int) error {
 	}
 
 	if len(offlineMessages) == 0 {
+		log.Printf("用户 %d 没有离线消息", userID)
 		return nil
 	}
 
@@ -142,16 +144,46 @@ func (oms *OfflineMessageService) SendOfflineMessagesToUser(userID int) error {
 	successCount := 0
 
 	for _, message := range offlineMessages {
-		// 修改消息类型为离线消息
-		message.Type = "offline_message"
+		// 使用WebSocket消息格式发送离线消息
+		wsMsg := websocket.Message{
+			Type:    websocket.SystemNotice, // 使用系统通知类型
+			Content: message.Content,        // 离线消息内容已经包含"[离线消息]"前缀
+			Data:    message.Data,           // 保持原有数据
+			Time:    message.Time,           // 保持原有时间
+		}
 
-		err := wsService.SendNotification(message)
+		// 序列化为WebSocket消息格式
+		msgBytes, err := json.Marshal(wsMsg)
 		if err != nil {
-			log.Printf("发送离线消息失败: UserID=%d, MessageID=%s, Error=%v",
+			log.Printf("序列化离线消息失败: UserID=%d, MessageID=%s, Error=%v",
 				userID, message.MessageID, err)
 			continue
 		}
-		successCount++
+
+		// 直接发送给用户
+		hub := wsService.GetHub()
+		clients := hub.GetUserClients(userID)
+
+		sent := false
+		for _, client := range clients {
+			select {
+			case client.Send <- msgBytes:
+				sent = true
+				// 标记离线消息为已投递
+				go wsService.markMessageAsDelivered(message.MessageID, userID)
+				log.Printf("离线消息已发送给用户 %d: MessageID=%s", userID, message.MessageID)
+				break
+			default:
+				// 客户端缓冲区已满，跳过
+				continue
+			}
+		}
+
+		if sent {
+			successCount++
+		} else {
+			log.Printf("离线消息发送失败: UserID=%d, MessageID=%s", userID, message.MessageID)
+		}
 	}
 
 	// 如果所有消息都发送成功，清除离线消息
@@ -160,12 +192,130 @@ func (oms *OfflineMessageService) SendOfflineMessagesToUser(userID int) error {
 		if err != nil {
 			log.Printf("清除离线消息失败: %v", err)
 		}
+	} else if successCount > 0 {
+		// 部分成功，保留未发送的消息
+		log.Printf("部分离线消息发送成功: UserID=%d, 成功=%d, 总数=%d", userID, successCount, len(offlineMessages))
 	}
 
 	log.Printf("📱 离线消息发送完成: UserID=%d, 总数=%d, 成功=%d",
 		userID, len(offlineMessages), successCount)
 
 	return nil
+}
+
+// batchSendOfflineMessages 批量发送离线消息（优化版本）
+func (oms *OfflineMessageService) batchSendOfflineMessages(userID int, messages []*NotificationMessage) error {
+	wsService := GetWebSocketService()
+	hub := wsService.GetHub()
+	clients := hub.GetUserClients(userID)
+
+	if len(clients) == 0 {
+		log.Printf("用户 %d 没有活跃连接，无法发送离线消息", userID)
+		return fmt.Errorf("用户没有活跃连接")
+	}
+
+	successCount := 0
+	failedMessages := make([]*NotificationMessage, 0)
+
+	// 批量处理消息
+	for _, message := range messages {
+		// 使用WebSocket消息格式发送离线消息
+		wsMsg := websocket.Message{
+			Type:    websocket.SystemNotice,
+			Content: message.Content,
+			Data:    message.Data,
+			Time:    message.Time,
+		}
+
+		// 序列化为WebSocket消息格式
+		msgBytes, err := json.Marshal(wsMsg)
+		if err != nil {
+			log.Printf("序列化离线消息失败: UserID=%d, MessageID=%s, Error=%v",
+				userID, message.MessageID, err)
+			failedMessages = append(failedMessages, message)
+			continue
+		}
+
+		// 尝试发送给所有客户端
+		sent := false
+		for _, client := range clients {
+			select {
+			case client.Send <- msgBytes:
+				sent = true
+				// 异步标记消息为已投递
+				go func(msgID string) {
+					time.Sleep(100 * time.Millisecond) // 等待100ms确保记录创建完成
+					wsService.markMessageAsDelivered(msgID, userID)
+				}(message.MessageID)
+				log.Printf("离线消息已发送给用户 %d: MessageID=%s", userID, message.MessageID)
+				break
+			default:
+				// 客户端缓冲区已满，尝试下一个客户端
+				continue
+			}
+		}
+
+		if sent {
+			successCount++
+		} else {
+			failedMessages = append(failedMessages, message)
+			log.Printf("离线消息发送失败: UserID=%d, MessageID=%s", userID, message.MessageID)
+		}
+	}
+
+	// 处理发送结果
+	if successCount == len(messages) {
+		// 全部成功，清除离线消息
+		err := oms.ClearOfflineMessages(userID)
+		if err != nil {
+			log.Printf("清除离线消息失败: %v", err)
+		}
+		log.Printf("所有离线消息发送成功: UserID=%d, 总数=%d", userID, successCount)
+	} else if successCount > 0 {
+		// 部分成功，保留失败的消息
+		log.Printf("部分离线消息发送成功: UserID=%d, 成功=%d, 失败=%d", userID, successCount, len(failedMessages))
+
+		// 重新保存失败的消息
+		if len(failedMessages) > 0 {
+			err := oms.saveFailedMessages(userID, failedMessages)
+			if err != nil {
+				log.Printf("重新保存失败消息失败: %v", err)
+			}
+		}
+	} else {
+		// 全部失败
+		log.Printf("所有离线消息发送失败: UserID=%d", userID)
+		return fmt.Errorf("所有离线消息发送失败")
+	}
+
+	return nil
+}
+
+// saveFailedMessages 保存失败的消息
+func (oms *OfflineMessageService) saveFailedMessages(userID int, messages []*NotificationMessage) error {
+	ctx := context.Background()
+	pipe := redis.GetClient().Pipeline()
+
+	key := fmt.Sprintf("offline_msg:%d", userID)
+
+	// 先清除现有消息
+	pipe.Del(ctx, key)
+
+	// 重新添加失败的消息
+	for _, message := range messages {
+		msgData, err := json.Marshal(message)
+		if err != nil {
+			continue
+		}
+		pipe.LPush(ctx, key, msgData)
+	}
+
+	// 限制消息数量并设置过期时间
+	pipe.LTrim(ctx, key, 0, 99)
+	pipe.Expire(ctx, key, 7*24*time.Hour)
+
+	_, err := pipe.Exec(ctx)
+	return err
 }
 
 // CleanupExpiredMessages 清理过期的离线消息

@@ -21,6 +21,22 @@ type UpdateTenantsReq struct {
 	RoleId   int    `form:"role_id" binding:"required"`
 }
 
+// UpdateUserProfileReq 修改用户信息请求
+type UpdateUserProfileReq struct {
+	Id       int    `json:"id" binding:"required"`
+	Username string `json:"username"`
+	Phone    string `json:"phone"`
+	Avatar   string `json:"avatar"`
+	Sex      int    `json:"sex"`
+}
+
+// UpdateUserPasswordReq 修改用户密码请求
+type UpdateUserPasswordReq struct {
+	Id          int    `json:"id" binding:"required"`
+	OldPassword string `json:"old_password" binding:"required"`
+	NewPassword string `json:"new_password" binding:"required"`
+}
+
 type LoginAdminReq struct {
 	Username string `form:"username" binding:"required"`
 	Password string `form:"password" binding:"required"`
@@ -296,4 +312,12 @@ type SystemInfoListResponse struct {
 	Page     int                  `json:"page"`
 	PageSize int                  `json:"page_size"`
 	Items    []SystemInfoResponse `json:"items"`
+}
+
+// SystemNoticeReq 系统通知请求
+type SystemNoticeReq struct {
+	Content string `json:"content" binding:"required"` // 通知内容
+	Type    string `json:"type"`                       // 通知类型：system_notice, system_maintain, system_upgrade
+	Target  string `json:"target"`                     // 推送目标：all, admin, custom
+	UserIDs []int  `json:"user_ids"`                   // 当target为custom时，指定用户ID列表
 }

@@ -10,6 +10,7 @@ import (
 	"nasa-go-admin/mongodb"
 	"nasa-go-admin/redis"
 	"nasa-go-admin/utils"
+	"sort"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,8 @@ func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName s
 
 	// 构建查询条件
 	filter := bson.M{}
+
+	// 关键词搜索（保持原有功能）
 	if req.Keyword != "" {
 		// 扩展关键词搜索，支持多个字段
 		filter["$or"] = []bson.M{
@@ -38,6 +41,43 @@ func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName s
 			{"user_agent": bson.M{"$regex": req.Keyword, "$options": "i"}},
 			{"response_message": bson.M{"$regex": req.Keyword, "$options": "i"}},
 		}
+	}
+
+	// 用户名搜索
+	if req.Username != "" {
+		filter["username"] = bson.M{"$regex": req.Username, "$options": "i"}
+	}
+
+	// 日期时间范围搜索
+	if req.StartDate != "" || req.EndDate != "" {
+		timeFilter := bson.M{}
+		if req.StartDate != "" {
+			timeFilter["$gte"] = req.StartDate
+		}
+		if req.EndDate != "" {
+			timeFilter["$lte"] = req.EndDate
+		}
+		filter["timestamp"] = timeFilter
+	}
+
+	// HTTP方法过滤
+	if req.Method != "" {
+		filter["method"] = bson.M{"$regex": req.Method, "$options": "i"}
+	}
+
+	// 状态码过滤
+	if req.StatusCode > 0 {
+		filter["status_code"] = req.StatusCode
+	}
+
+	// 客户端IP过滤
+	if req.ClientIP != "" {
+		filter["client_ip"] = bson.M{"$regex": req.ClientIP, "$options": "i"}
+	}
+
+	// 请求路径过滤
+	if req.Path != "" {
+		filter["path"] = bson.M{"$regex": req.Path, "$options": "i"}
 	}
 
 	// 设置默认分页参数
@@ -84,6 +124,16 @@ func (s *SystemService) GetSystemLog(req inout.GetSystemLogReq, collectionName s
 		"query_time": time.Now().Format("2006-01-02 15:04:05"),
 		"database":   collectionName,
 		"timezone":   utils.GetTimeZoneInfo(),
+		"filters": map[string]interface{}{
+			"keyword":     req.Keyword,
+			"username":    req.Username,
+			"start_date":  req.StartDate,
+			"end_date":    req.EndDate,
+			"method":      req.Method,
+			"status_code": req.StatusCode,
+			"client_ip":   req.ClientIP,
+			"path":        req.Path,
+		},
 	}
 
 	return response, nil
@@ -518,4 +568,391 @@ func (s *SystemService) GetAllDictType(c *gin.Context) (interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// ClearSystemLog 清空指定数据库的日志数据
+func (s *SystemService) ClearSystemLog(collectionName string) (interface{}, error) {
+	collection := mongodb.GetCollection(collectionName, "logs")
+	if collection == nil {
+		return nil, fmt.Errorf("MongoDB collection 不可用")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 获取清空前的记录数
+	totalBefore, err := collection.CountDocuments(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("获取记录数失败: %w", err)
+	}
+
+	// 清空所有日志数据
+	result, err := collection.DeleteMany(ctx, bson.M{})
+	if err != nil {
+		return nil, fmt.Errorf("清空日志失败: %w", err)
+	}
+
+	// 记录清空操作到系统日志
+	clearLog := map[string]interface{}{
+		"operation":     "clear_logs",
+		"database":      collectionName,
+		"cleared_count": result.DeletedCount,
+		"timestamp":     utils.GetCurrentTimeForMongo(),
+		"operator":      "admin_system",
+	}
+
+	// 将清空操作记录到系统操作日志中
+	operationCollection := mongodb.GetCollection("admin_log_db", "logs")
+	if operationCollection != nil {
+		_, _ = operationCollection.InsertOne(ctx, clearLog)
+	}
+
+	return map[string]interface{}{
+		"message":       "日志清空成功",
+		"database":      collectionName,
+		"cleared_count": result.DeletedCount,
+		"total_before":  totalBefore,
+		"clear_time":    time.Now().Format("2006-01-02 15:04:05"),
+		"operation_id":  fmt.Sprintf("clear_%s_%d", collectionName, time.Now().Unix()),
+	}, nil
+}
+
+// GetUserLog 获取用户端操作日志
+func (s *SystemService) GetUserLog(req inout.GetUserLogReq) (interface{}, error) {
+	// 设置默认分页参数
+	if req.Page <= 0 {
+		req.Page = 1
+	}
+	if req.PageSize <= 0 {
+		req.PageSize = 20
+	}
+	if req.PageSize > 100 {
+		req.PageSize = 100
+	}
+
+	// 获取MongoDB集合
+	collectionName := "app_log_db"
+	collection := mongodb.GetCollection(collectionName, "logs")
+	if collection == nil {
+		return nil, fmt.Errorf("MongoDB collection 不可用")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	// 构建查询条件
+	filter := bson.M{}
+
+	// 关键词搜索
+	if req.Keyword != "" {
+		filter["$or"] = []bson.M{
+			{"username": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"path": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"method": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"client_ip": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"user_agent": bson.M{"$regex": req.Keyword, "$options": "i"}},
+			{"response_message": bson.M{"$regex": req.Keyword, "$options": "i"}},
+		}
+	}
+
+	// 用户名搜索
+	if req.Username != "" {
+		filter["username"] = bson.M{"$regex": req.Username, "$options": "i"}
+	}
+
+	// 用户ID搜索
+	if req.UserID > 0 {
+		filter["user_id"] = req.UserID
+	}
+
+	// 日期时间范围搜索
+	if req.StartDate != "" || req.EndDate != "" {
+		dateFilter := bson.M{}
+		if req.StartDate != "" {
+			dateFilter["$gte"] = req.StartDate
+		}
+		if req.EndDate != "" {
+			dateFilter["$lte"] = req.EndDate
+		}
+		filter["timestamp"] = dateFilter
+	}
+
+	// HTTP方法过滤
+	if req.Method != "" {
+		filter["method"] = bson.M{"$regex": req.Method, "$options": "i"}
+	}
+
+	// 状态码过滤
+	if req.StatusCode > 0 {
+		filter["status_code"] = req.StatusCode
+	}
+
+	// 客户端IP过滤
+	if req.ClientIP != "" {
+		filter["client_ip"] = bson.M{"$regex": req.ClientIP, "$options": "i"}
+	}
+
+	// 请求路径过滤
+	if req.Path != "" {
+		filter["path"] = bson.M{"$regex": req.Path, "$options": "i"}
+	}
+
+	// 设备类型过滤
+	if req.DeviceType != "" {
+		filter["device_type"] = bson.M{"$regex": req.DeviceType, "$options": "i"}
+	}
+
+	// 应用版本过滤
+	if req.AppVersion != "" {
+		filter["app_version"] = bson.M{"$regex": req.AppVersion, "$options": "i"}
+	}
+
+	// 操作类型过滤
+	if req.Action != "" {
+		filter["action"] = bson.M{"$regex": req.Action, "$options": "i"}
+	}
+
+	// 计算总数
+	total, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, fmt.Errorf("获取日志总数失败: %w", err)
+	}
+
+	// 设置排序和分页
+	opts := options.Find().
+		SetSort(bson.D{{"timestamp", -1}}).
+		SetSkip(int64((req.Page - 1) * req.PageSize)).
+		SetLimit(int64(req.PageSize))
+
+	// 执行查询
+	cursor, err := collection.Find(ctx, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("查询日志失败: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	// 解析结果
+	var logs []bson.M
+	if err = cursor.All(ctx, &logs); err != nil {
+		return nil, fmt.Errorf("解析日志数据失败: %w", err)
+	}
+
+	// 格式化日志数据
+	formattedLogs := s.formatUserLogData(logs)
+
+	// 计算统计信息
+	stats := s.calculateUserLogStats(logs)
+
+	// 构造返回结果
+	response := map[string]interface{}{
+		"total":      total,
+		"page":       req.Page,
+		"page_size":  req.PageSize,
+		"items":      formattedLogs,
+		"stats":      stats,
+		"query_time": time.Now().Format("2006-01-02 15:04:05"),
+		"database":   collectionName,
+		"timezone":   utils.GetTimeZoneInfo(),
+		"filters": map[string]interface{}{
+			"keyword":     req.Keyword,
+			"username":    req.Username,
+			"user_id":     req.UserID,
+			"start_date":  req.StartDate,
+			"end_date":    req.EndDate,
+			"method":      req.Method,
+			"status_code": req.StatusCode,
+			"client_ip":   req.ClientIP,
+			"path":        req.Path,
+			"device_type": req.DeviceType,
+			"app_version": req.AppVersion,
+			"action":      req.Action,
+		},
+	}
+
+	return response, nil
+}
+
+// formatUserLogData 格式化用户日志数据
+func (s *SystemService) formatUserLogData(logs []bson.M) []map[string]interface{} {
+	var formattedLogs []map[string]interface{}
+	for _, log := range logs {
+		formattedLog := map[string]interface{}{
+			"timestamp":        log["timestamp"],
+			"method":           log["method"],
+			"path":             log["path"],
+			"client_ip":        log["client_ip"],
+			"user_id":          log["user_id"],
+			"username":         log["username"],
+			"latency_ms":       log["latency_ms"],
+			"status_code":      log["status_code"],
+			"response_code":    log["response_code"],
+			"response_message": log["response_message"],
+			"request_size":     log["request_size"],
+			"response_size":    log["response_size"],
+			"user_agent":       log["user_agent"],
+			"referer":          log["referer"],
+			"log_type":         log["log_type"],
+			"local_timestamp":  log["local_timestamp"],
+		}
+
+		// 添加用户端特有的字段
+		if deviceType, exists := log["device_type"]; exists {
+			formattedLog["device_type"] = deviceType
+		}
+		if appVersion, exists := log["app_version"]; exists {
+			formattedLog["app_version"] = appVersion
+		}
+		if action, exists := log["action"]; exists {
+			formattedLog["action"] = action
+		}
+		if platform, exists := log["platform"]; exists {
+			formattedLog["platform"] = platform
+		}
+
+		formattedLogs = append(formattedLogs, formattedLog)
+	}
+	return formattedLogs
+}
+
+// calculateUserLogStats 计算用户日志统计信息
+func (s *SystemService) calculateUserLogStats(logs []bson.M) map[string]interface{} {
+	if len(logs) == 0 {
+		return map[string]interface{}{
+			"total_requests":    0,
+			"success_rate":      0.0,
+			"avg_response_time": 0.0,
+			"top_methods":       []map[string]interface{}{},
+			"top_paths":         []map[string]interface{}{},
+			"top_users":         []map[string]interface{}{},
+			"device_types":      []map[string]interface{}{},
+			"status_codes":      []map[string]interface{}{},
+		}
+	}
+
+	// 统计变量
+	totalRequests := len(logs)
+	successCount := 0
+	totalResponseTime := 0.0
+	methods := make(map[string]int)
+	paths := make(map[string]int)
+	users := make(map[string]int)
+	deviceTypes := make(map[string]int)
+	statusCodes := make(map[string]int)
+
+	// 遍历日志计算统计
+	for _, log := range logs {
+		// 成功请求统计
+		if statusCode, exists := log["status_code"]; exists {
+			if status, ok := statusCode.(int32); ok && status >= 200 && status < 300 {
+				successCount++
+			}
+			statusCodes[fmt.Sprintf("%d", statusCode)]++
+		}
+
+		// 响应时间统计
+		if latency, exists := log["latency_ms"]; exists {
+			if lat, ok := latency.(int32); ok {
+				totalResponseTime += float64(lat)
+			}
+		}
+
+		// HTTP方法统计
+		if method, exists := log["method"]; exists {
+			if m, ok := method.(string); ok {
+				methods[m]++
+			}
+		}
+
+		// 路径统计
+		if path, exists := log["path"]; exists {
+			if p, ok := path.(string); ok {
+				paths[p]++
+			}
+		}
+
+		// 用户统计
+		if username, exists := log["username"]; exists {
+			if u, ok := username.(string); ok && u != "" {
+				users[u]++
+			}
+		}
+
+		// 设备类型统计
+		if deviceType, exists := log["device_type"]; exists {
+			if dt, ok := deviceType.(string); ok {
+				deviceTypes[dt]++
+			}
+		}
+	}
+
+	// 计算成功率
+	successRate := 0.0
+	if totalRequests > 0 {
+		successRate = float64(successCount) / float64(totalRequests) * 100
+	}
+
+	// 计算平均响应时间
+	avgResponseTime := 0.0
+	if totalRequests > 0 {
+		avgResponseTime = totalResponseTime / float64(totalRequests)
+	}
+
+	// 获取前5个最常用的HTTP方法
+	topMethods := s.getTopItems(methods, 5)
+
+	// 获取前5个最常用的路径
+	topPaths := s.getTopItems(paths, 5)
+
+	// 获取前5个最活跃的用户
+	topUsers := s.getTopItems(users, 5)
+
+	// 获取设备类型分布
+	topDeviceTypes := s.getTopItems(deviceTypes, 10)
+
+	// 获取状态码分布
+	topStatusCodes := s.getTopItems(statusCodes, 10)
+
+	return map[string]interface{}{
+		"total_requests":    totalRequests,
+		"success_rate":      successRate,
+		"avg_response_time": avgResponseTime,
+		"top_methods":       topMethods,
+		"top_paths":         topPaths,
+		"top_users":         topUsers,
+		"device_types":      topDeviceTypes,
+		"status_codes":      topStatusCodes,
+	}
+}
+
+// getTopItems 获取前N个最常用的项目
+func (s *SystemService) getTopItems(items map[string]int, limit int) []map[string]interface{} {
+	// 转换为切片进行排序
+	type itemCount struct {
+		Item  string
+		Count int
+	}
+
+	var itemCounts []itemCount
+	for item, count := range items {
+		itemCounts = append(itemCounts, itemCount{Item: item, Count: count})
+	}
+
+	// 按计数降序排序
+	sort.Slice(itemCounts, func(i, j int) bool {
+		return itemCounts[i].Count > itemCounts[j].Count
+	})
+
+	// 返回前N个
+	var result []map[string]interface{}
+	for i, item := range itemCounts {
+		if i >= limit {
+			break
+		}
+		result = append(result, map[string]interface{}{
+			"item":  item.Item,
+			"count": item.Count,
+		})
+	}
+
+	return result
 }

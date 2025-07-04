@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
+	mathRand "math/rand"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/utils"
 	"sync"
@@ -67,7 +67,7 @@ func (s *OrderService) CreateOrder(c *gin.Context, uid int, params inout.CreateO
 // 生成订单号的辅助函数
 func generateOrderNo(uid, goodsId int) string {
 	timestamp := time.Now().Format("20060102150405")
-	random := rand.Intn(1000)
+	random := mathRand.Intn(1000)
 	return fmt.Sprintf("%s%d%d%03d", timestamp, uid, goodsId, random)
 }
 

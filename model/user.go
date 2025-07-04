@@ -9,7 +9,7 @@ type User struct {
 	Username       string    `json:"username"`
 	Password       string    `json:"password"`
 	PasswordBcrypt string    `json:"-" gorm:"column:password_bcrypt"` // 新的bcrypt密码字段
-	Enable         bool      `json:"enable"`
+	Enable         string    `json:"enable"`                          // 改为string类型，匹配数据库中的"active"值
 	CreateTime     time.Time `json:"createTime" gorm:"column:createTime"`
 	UpdateTime     time.Time `json:"updateTime" gorm:"column:updateTime"`
 }

@@ -3,7 +3,6 @@ package security
 import (
 	"errors"
 	"regexp"
-	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,42 +31,16 @@ func CheckPasswordHash(password, hash string) bool {
 
 // ValidatePasswordStrength 验证密码强度
 func ValidatePasswordStrength(password string) error {
-	if len(password) < 8 {
-		return errors.New("密码长度不能少于8位")
+	if len(password) < 6 {
+		return errors.New("密码长度不能少于6位")
 	}
 	if len(password) > 32 {
 		return errors.New("密码长度不能超过32位")
 	}
 
-	hasUpper := false
-	hasLower := false
-	hasDigit := false
-	hasSpecial := false
-
-	for _, char := range password {
-		switch {
-		case unicode.IsUpper(char):
-			hasUpper = true
-		case unicode.IsLower(char):
-			hasLower = true
-		case unicode.IsDigit(char):
-			hasDigit = true
-		case isSpecialChar(char):
-			hasSpecial = true
-		}
-	}
-
-	if !hasUpper {
-		return errors.New("密码必须包含大写字母")
-	}
-	if !hasLower {
-		return errors.New("密码必须包含小写字母")
-	}
-	if !hasDigit {
-		return errors.New("密码必须包含数字")
-	}
-	if !hasSpecial {
-		return errors.New("密码必须包含特殊字符(!@#$%^&*)")
+	// 最基本的密码验证：不能为空且长度合适
+	if password == "" {
+		return errors.New("密码不能为空")
 	}
 
 	return nil

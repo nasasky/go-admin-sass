@@ -70,3 +70,14 @@ func GetSystemInfoList(c *gin.Context) {
 
 	Resp.Succ(c, list)
 }
+
+// GetFirstSystemInfo 获取第一条系统信息记录（公开接口，不需要验证）
+func GetFirstSystemInfo(c *gin.Context) {
+	info, err := systemInfoService.GetFirstSystemInfo()
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+
+	Resp.Succ(c, info)
+}

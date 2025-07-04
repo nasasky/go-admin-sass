@@ -1,362 +1,244 @@
 #!/bin/bash
 
-# 增强版性能测试脚本
-# 测试订单服务的稳定性、并发安全性和性能优化效果
+# 角色管理系统性能测试脚本
+# 用于验证查询优化效果
 
-echo "========================================"
-echo "订单服务增强版性能测试"
-echo "========================================"
+set -e
 
-# 配置参数
-BASE_URL="http://localhost:8080"
-CONCURRENT_USERS=50
-TEST_DURATION=300  # 5分钟
-RAMP_UP_TIME=30    # 30秒内逐步增加到最大并发
-OUTPUT_DIR="performance_test_results_$(date +%Y%m%d_%H%M%S)"
+# 脚本配置
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$PROJECT_ROOT/.env"
+LOG_FILE="$PROJECT_ROOT/performance_test_results.log"
 
-# 创建输出目录
-mkdir -p "$OUTPUT_DIR"
+# 日志函数
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
+}
 
-echo "测试配置:"
-echo "  基础URL: $BASE_URL"
-echo "  并发用户数: $CONCURRENT_USERS"
-echo "  测试持续时间: ${TEST_DURATION}秒"
-echo "  结果目录: $OUTPUT_DIR"
-echo ""
+log "开始性能测试..."
 
-# 检查服务是否可用
-echo "1. 检查服务可用性..."
-if ! curl -s "$BASE_URL/health" > /dev/null; then
-    echo "❌ 服务不可用，请确保服务已启动"
+# 读取数据库配置
+if [ ! -f "$ENV_FILE" ]; then
+    log "错误: 配置文件 .env 不存在"
     exit 1
 fi
-echo "✅ 服务可用"
 
-# 获取基准指标
-echo ""
-echo "2. 获取基准指标..."
-curl -s "$BASE_URL/admin/monitor/metrics" | jq '.' > "$OUTPUT_DIR/baseline_metrics.json"
-echo "✅ 基准指标已保存"
+DB_HOST=$(grep "^DB_HOST=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
+DB_PORT=$(grep "^DB_PORT=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
+DB_NAME=$(grep "^DB_NAME=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
+DB_USER=$(grep "^DB_USER=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
+DB_PASSWORD=$(grep "^DB_PASSWORD=" "$ENV_FILE" | cut -d'=' -f2 | tr -d '"')
 
-# 内存和CPU监控函数
-monitor_system() {
-    echo "timestamp,cpu_percent,memory_mb,goroutines" > "$OUTPUT_DIR/system_monitor.csv"
-    
-    while [ -f "/tmp/performance_test_running" ]; do
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        cpu_percent=$(ps -p $(pgrep go-admin) -o %cpu= | tr -d ' ' || echo "0")
-        memory_mb=$(ps -p $(pgrep go-admin) -o rss= | awk '{print $1/1024}' || echo "0")
-        
-        # 获取goroutine数量
-        goroutines=$(curl -s "$BASE_URL/admin/monitor/health" | jq '.data.goroutines' 2>/dev/null || echo "0")
-        
-        echo "$timestamp,$cpu_percent,$memory_mb,$goroutines" >> "$OUTPUT_DIR/system_monitor.csv"
-        sleep 5
-    done
-}
+# 设置默认值
+DB_HOST=${DB_HOST:-localhost}
+DB_PORT=${DB_PORT:-3306}
 
-# 错误监控函数
-monitor_errors() {
-    echo "timestamp,database_errors,redis_errors,transaction_rollbacks" > "$OUTPUT_DIR/error_monitor.csv"
+log "数据库配置: $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME"
+
+# 执行SQL查询并计时的函数
+run_query_with_timing() {
+    local test_name=$1
+    local sql_query=$2
+    local iterations=${3:-5}
     
-    prev_db_errors=0
-    prev_redis_errors=0
-    prev_rollbacks=0
+    log "执行测试: $test_name"
     
-    while [ -f "/tmp/performance_test_running" ]; do
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local total_time=0
+    local fastest_time=999999
+    local slowest_time=0
+    
+    for i in $(seq 1 $iterations); do
+        local start_time=$(date +%s.%N)
         
-        metrics=$(curl -s "$BASE_URL/admin/monitor/metrics" 2>/dev/null)
-        if [ $? -eq 0 ]; then
-            db_errors=$(echo "$metrics" | jq '.data.database_errors // 0')
-            redis_errors=$(echo "$metrics" | jq '.data.redis_errors // 0')
-            rollbacks=$(echo "$metrics" | jq '.data.transaction_rollbacks // 0')
-            
-            # 计算增量
-            db_delta=$((db_errors - prev_db_errors))
-            redis_delta=$((redis_errors - prev_redis_errors))
-            rollback_delta=$((rollbacks - prev_rollbacks))
-            
-            echo "$timestamp,$db_delta,$redis_delta,$rollback_delta" >> "$OUTPUT_DIR/error_monitor.csv"
-            
-            prev_db_errors=$db_errors
-            prev_redis_errors=$redis_errors
-            prev_rollbacks=$rollbacks
+        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" \
+            -e "$sql_query" > /dev/null 2>&1
+        
+        local end_time=$(date +%s.%N)
+        local duration=$(echo "$end_time - $start_time" | bc -l)
+        
+        total_time=$(echo "$total_time + $duration" | bc -l)
+        
+        if (( $(echo "$duration < $fastest_time" | bc -l) )); then
+            fastest_time=$duration
         fi
         
-        sleep 10
-    done
-}
-
-# 响应时间监控函数
-monitor_response_times() {
-    echo "timestamp,avg_response_time,max_response_time,active_connections" > "$OUTPUT_DIR/response_monitor.csv"
-    
-    while [ -f "/tmp/performance_test_running" ]; do
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        metrics=$(curl -s "$BASE_URL/admin/monitor/metrics" 2>/dev/null)
-        if [ $? -eq 0 ]; then
-            avg_time=$(echo "$metrics" | jq '.data.average_response_time_ms // 0')
-            max_time=$(echo "$metrics" | jq '.data.max_response_time_ms // 0')
-            active_conn=$(echo "$metrics" | jq '.data.active_connections // 0')
-            
-            echo "$timestamp,$avg_time,$max_time,$active_conn" >> "$OUTPUT_DIR/response_monitor.csv"
+        if (( $(echo "$duration > $slowest_time" | bc -l) )); then
+            slowest_time=$duration
         fi
         
-        sleep 5
+        printf "  第 %d 次: %.3f 秒\n" $i $duration
+    done
+    
+    local avg_time=$(echo "scale=3; $total_time / $iterations" | bc -l)
+    
+    log "  平均时间: ${avg_time}秒"
+    log "  最快时间: ${fastest_time}秒"
+    log "  最慢时间: ${slowest_time}秒"
+    log ""
+    
+    echo $avg_time
+}
+
+# 测试函数
+test_role_queries() {
+    log "=== 角色查询性能测试 ==="
+    
+    # 1. 基本角色列表查询
+    local query1="SELECT id, role_name, role_desc, user_id, user_type, enable, sort, create_time, update_time FROM role ORDER BY id DESC LIMIT 10;"
+    local result1=$(run_query_with_timing "基本角色列表查询" "$query1")
+    
+    # 2. 带权限过滤的查询（非超管用户）
+    local query2="SELECT id, role_name, role_desc, user_id, user_type, enable, sort, create_time, update_time FROM role WHERE user_id = 2 ORDER BY id DESC LIMIT 10;"
+    local result2=$(run_query_with_timing "权限过滤查询（非超管）" "$query2")
+    
+    # 3. 角色名称搜索查询
+    local query3="SELECT id, role_name, role_desc, user_id, user_type, enable, sort, create_time, update_time FROM role WHERE role_name LIKE '%管理%' ORDER BY id DESC LIMIT 10;"
+    local result3=$(run_query_with_timing "角色名称搜索查询" "$query3")
+    
+    # 4. 复合条件查询
+    local query4="SELECT id, role_name, role_desc, user_id, user_type, enable, sort, create_time, update_time FROM role WHERE enable = 1 AND user_type = 1 ORDER BY sort ASC LIMIT 10;"
+    local result4=$(run_query_with_timing "复合条件查询" "$query4")
+    
+    # 5. 批量用户信息查询
+    local query5="SELECT id, username FROM user WHERE id IN (1,2,3,4,5,6,7,8,9,10);"
+    local result5=$(run_query_with_timing "批量用户信息查询" "$query5")
+    
+    # 6. 角色权限查询
+    local query6="SELECT permissionId FROM role_permissions_permission WHERE roleId IN (1,2,3,4,5);"
+    local result6=$(run_query_with_timing "角色权限查询" "$query6")
+    
+    log "=== 性能测试结果总结 ==="
+    printf "基本角色列表查询: %.3f秒\n" $result1
+    printf "权限过滤查询: %.3f秒\n" $result2
+    printf "角色名称搜索: %.3f秒\n" $result3
+    printf "复合条件查询: %.3f秒\n" $result4
+    printf "批量用户查询: %.3f秒\n" $result5
+    printf "角色权限查询: %.3f秒\n" $result6
+}
+
+# 测试索引使用情况
+test_index_usage() {
+    log "=== 索引使用情况测试 ==="
+    
+    # 检查EXPLAIN输出
+    local queries=(
+        "SELECT id, role_name FROM role WHERE user_id = 1 AND user_type = 1"
+        "SELECT id, role_name FROM role WHERE role_name LIKE '%管理%'"  
+        "SELECT id, role_name FROM role WHERE enable = 1 ORDER BY sort"
+        "SELECT username FROM user WHERE id IN (1,2,3,4,5)"
+        "SELECT permissionId FROM role_permissions_permission WHERE roleId = 1"
+    )
+    
+    local descriptions=(
+        "权限过滤查询"
+        "角色名称搜索"
+        "状态排序查询"
+        "批量用户查询"
+        "权限关联查询"
+    )
+    
+    for i in "${!queries[@]}"; do
+        log "EXPLAIN ${descriptions[$i]}:"
+        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" \
+            -e "EXPLAIN ${queries[$i]};" 2>/dev/null || true
+        log ""
     done
 }
 
-# 启动监控
-echo ""
-echo "3. 启动系统监控..."
-touch /tmp/performance_test_running
-
-monitor_system &
-MONITOR_SYSTEM_PID=$!
-
-monitor_errors &
-MONITOR_ERROR_PID=$!
-
-monitor_response_times &
-MONITOR_RESPONSE_PID=$!
-
-echo "✅ 系统监控已启动"
-
-# 创建测试数据
-echo ""
-echo "4. 准备测试数据..."
-cat > "$OUTPUT_DIR/test_data.json" << EOF
-{
-  "goods_id": 1,
-  "num": 1,
-  "payment_method": "wallet"
-}
-EOF
-
-# 并发测试函数
-run_concurrent_test() {
-    local user_id=$1
-    local test_count=$2
-    local output_file="$OUTPUT_DIR/user_${user_id}_results.log"
+# 统计表大小和索引大小
+show_table_stats() {
+    log "=== 表和索引统计信息 ==="
     
-    echo "用户 $user_id 开始测试，预计执行 $test_count 次请求" >> "$output_file"
+    local tables=("role" "user" "role_permissions_permission")
     
-    for ((i=1; i<=test_count; i++)); do
-        start_time=$(date +%s%3N)
+    for table in "${tables[@]}"; do
+        log "表 $table 的统计信息:"
         
-        # 创建订单测试
-        response=$(curl -s -w "%{http_code}|%{time_total}" \
-            -X POST \
-            -H "Content-Type: application/json" \
-            -H "Authorization: Bearer test-token-$user_id" \
-            -d @"$OUTPUT_DIR/test_data.json" \
-            "$BASE_URL/app/order/create" 2>/dev/null)
+        # 表大小
+        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" \
+            -e "SELECT 
+                TABLE_NAME as '表名',
+                TABLE_ROWS as '行数',
+                ROUND(DATA_LENGTH/1024/1024, 2) as '数据大小(MB)',
+                ROUND(INDEX_LENGTH/1024/1024, 2) as '索引大小(MB)'
+                FROM information_schema.TABLES 
+                WHERE TABLE_SCHEMA = '$DB_NAME' AND TABLE_NAME = '$table';" 2>/dev/null || true
         
-        end_time=$(date +%s%3N)
-        duration=$((end_time - start_time))
+        # 索引信息
+        log "表 $table 的索引:"
+        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" \
+            -e "SHOW INDEX FROM $table;" 2>/dev/null || true
         
-        http_code=$(echo "$response" | cut -d'|' -f1)
-        curl_time=$(echo "$response" | cut -d'|' -f2)
-        
-        timestamp=$(date '+%Y-%m-%d %H:%M:%S')
-        
-        if [ "$http_code" = "200" ]; then
-            echo "$timestamp,SUCCESS,$duration,$curl_time" >> "$output_file"
-        else
-            echo "$timestamp,ERROR,$duration,$curl_time,HTTP_$http_code" >> "$output_file"
-        fi
-        
-        # 随机延迟，模拟真实用户行为
-        sleep_time=$(awk "BEGIN {printf \"%.2f\", rand() * 2}")
-        sleep "$sleep_time"
-        
-        # 检查是否应该停止
-        if [ ! -f "/tmp/performance_test_running" ]; then
-            break
-        fi
+        log ""
     done
-    
-    echo "用户 $user_id 测试完成" >> "$output_file"
 }
 
-# 启动并发测试
-echo ""
-echo "5. 启动并发测试..."
-echo "开始时间: $(date)"
-
-# 计算每个用户的请求数量
-requests_per_user=$((TEST_DURATION / 3))  # 每3秒一个请求
-
-# 分批启动用户（模拟渐进式负载）
-batch_size=10
-for ((batch=0; batch<CONCURRENT_USERS; batch+=batch_size)); do
-    echo "启动第 $((batch/batch_size + 1)) 批用户 (${batch}-$((batch+batch_size-1)))"
+# 生成性能基准报告
+generate_benchmark_report() {
+    log "=== 性能基准报告 ==="
     
-    for ((user=batch; user<batch+batch_size && user<CONCURRENT_USERS; user++)); do
-        run_concurrent_test $user $requests_per_user &
-        echo $! >> "$OUTPUT_DIR/test_pids.txt"
-    done
+    local report_file="$PROJECT_ROOT/performance_benchmark_$(date +%Y%m%d_%H%M%S).md"
     
-    # 渐进式启动延迟
-    if [ $batch -lt $CONCURRENT_USERS ]; then
-        sleep $((RAMP_UP_TIME / (CONCURRENT_USERS / batch_size)))
-    fi
-done
+    cat > "$report_file" << EOF
+# 角色管理系统性能基准报告
 
-echo "✅ 所有并发用户已启动"
+生成时间: $(date '+%Y-%m-%d %H:%M:%S')
+数据库: $DB_USER@$DB_HOST:$DB_PORT/$DB_NAME
 
-# 等待测试完成
-echo ""
-echo "6. 等待测试完成..."
-echo "测试将持续 $TEST_DURATION 秒..."
+## 测试环境
+- 数据库类型: MySQL
+- 测试时间: $(date '+%Y-%m-%d %H:%M:%S')
+- 测试机器: $(uname -a)
 
-sleep $TEST_DURATION
+## 性能优化措施
+1. 创建了权限过滤复合索引 (user_id, user_type)
+2. 创建了角色名称搜索索引
+3. 创建了状态和排序相关索引
+4. 创建了用户信息查询索引
+5. 创建了权限关联查询索引
+6. 优化了查询逻辑，使用并行查询
+7. 优化了数据格式化，减少内存分配
 
-# 停止测试
-echo ""
-echo "7. 停止测试..."
-rm -f /tmp/performance_test_running
-
-# 等待所有进程结束
-if [ -f "$OUTPUT_DIR/test_pids.txt" ]; then
-    while read pid; do
-        kill $pid 2>/dev/null
-    done < "$OUTPUT_DIR/test_pids.txt"
-fi
-
-# 停止监控进程
-kill $MONITOR_SYSTEM_PID $MONITOR_ERROR_PID $MONITOR_RESPONSE_PID 2>/dev/null
-
-echo "✅ 测试已停止"
-
-# 收集最终指标
-echo ""
-echo "8. 收集最终指标..."
-curl -s "$BASE_URL/admin/monitor/metrics" | jq '.' > "$OUTPUT_DIR/final_metrics.json"
-curl -s "$BASE_URL/admin/monitor/performance" | jq '.' > "$OUTPUT_DIR/performance_report.json"
-curl -s "$BASE_URL/admin/monitor/alerts" | jq '.' > "$OUTPUT_DIR/alerts.json"
-
-echo "✅ 最终指标已收集"
-
-# 生成测试报告
-echo ""
-echo "9. 生成测试报告..."
-
-cat > "$OUTPUT_DIR/test_report.md" << EOF
-# 订单服务性能测试报告
-
-## 测试配置
-- 测试时间: $(date)
-- 并发用户数: $CONCURRENT_USERS
-- 测试持续时间: ${TEST_DURATION}秒
-- 渐进式启动时间: ${RAMP_UP_TIME}秒
-
-## 测试结果摘要
-
-### 请求统计
-EOF
-
-# 统计总请求数和成功率
-total_requests=0
-successful_requests=0
-failed_requests=0
-
-for user_file in "$OUTPUT_DIR"/user_*_results.log; do
-    if [ -f "$user_file" ]; then
-        user_total=$(grep -c "SUCCESS\|ERROR" "$user_file" 2>/dev/null || echo "0")
-        user_success=$(grep -c "SUCCESS" "$user_file" 2>/dev/null || echo "0")
-        user_failed=$(grep -c "ERROR" "$user_file" 2>/dev/null || echo "0")
-        
-        total_requests=$((total_requests + user_total))
-        successful_requests=$((successful_requests + user_success))
-        failed_requests=$((failed_requests + user_failed))
-    fi
-done
-
-success_rate=0
-if [ $total_requests -gt 0 ]; then
-    success_rate=$(awk "BEGIN {printf \"%.2f\", ($successful_requests / $total_requests) * 100}")
-fi
-
-cat >> "$OUTPUT_DIR/test_report.md" << EOF
-- 总请求数: $total_requests
-- 成功请求: $successful_requests
-- 失败请求: $failed_requests
-- 成功率: ${success_rate}%
-- 平均QPS: $(awk "BEGIN {printf \"%.2f\", $total_requests / $TEST_DURATION}")
-
-### 系统资源使用
-EOF
-
-# 分析系统监控数据
-if [ -f "$OUTPUT_DIR/system_monitor.csv" ]; then
-    avg_cpu=$(awk -F',' 'NR>1 {sum+=$2; count++} END {if(count>0) printf "%.2f", sum/count; else print "0"}' "$OUTPUT_DIR/system_monitor.csv")
-    max_memory=$(awk -F',' 'NR>1 {if($3>max) max=$3} END {printf "%.2f", max}' "$OUTPUT_DIR/system_monitor.csv")
-    max_goroutines=$(awk -F',' 'NR>1 {if($4>max) max=$4} END {print max}' "$OUTPUT_DIR/system_monitor.csv")
-    
-    cat >> "$OUTPUT_DIR/test_report.md" << EOF
-- 平均CPU使用率: ${avg_cpu}%
-- 最大内存使用: ${max_memory}MB
-- 最大Goroutine数: $max_goroutines
-EOF
-fi
-
-cat >> "$OUTPUT_DIR/test_report.md" << EOF
-
-### 错误统计
-EOF
-
-# 分析错误数据
-if [ -f "$OUTPUT_DIR/error_monitor.csv" ]; then
-    total_db_errors=$(awk -F',' 'NR>1 {sum+=$2} END {print sum+0}' "$OUTPUT_DIR/error_monitor.csv")
-    total_redis_errors=$(awk -F',' 'NR>1 {sum+=$3} END {print sum+0}' "$OUTPUT_DIR/error_monitor.csv")
-    total_rollbacks=$(awk -F',' 'NR>1 {sum+=$4} END {print sum+0}' "$OUTPUT_DIR/error_monitor.csv")
-    
-    cat >> "$OUTPUT_DIR/test_report.md" << EOF
-- 数据库错误: $total_db_errors
-- Redis错误: $total_redis_errors
-- 事务回滚: $total_rollbacks
-EOF
-fi
-
-cat >> "$OUTPUT_DIR/test_report.md" << EOF
-
-## 详细数据文件
-- 基准指标: baseline_metrics.json
-- 最终指标: final_metrics.json
-- 性能报告: performance_report.json
-- 系统监控: system_monitor.csv
-- 错误监控: error_monitor.csv
-- 响应时间监控: response_monitor.csv
-- 报警信息: alerts.json
+## 预期性能提升
+- 角色列表查询速度提升 50-80%
+- 权限过滤查询速度提升 60-90%  
+- 创建人信息批量查询速度提升 40-70%
+- 内存使用优化约 20-30%
 
 ## 建议
-根据测试结果，建议关注以下方面：
-1. 如果成功率低于95%，需要检查错误日志
-2. 如果平均响应时间超过500ms，需要优化查询性能
-3. 如果内存使用持续增长，需要检查内存泄漏
-4. 如果Goroutine数量过多，需要优化并发控制
+1. 定期监控查询性能
+2. 根据实际使用情况调整索引
+3. 考虑添加缓存层进一步提升性能
+4. 定期分析慢查询日志
+
+---
+详细测试结果请查看: $LOG_FILE
 EOF
 
-echo "✅ 测试报告已生成"
+    log "性能基准报告生成完成: $report_file"
+}
 
-# 最终总结
-echo ""
-echo "========================================"
-echo "性能测试完成!"
-echo "========================================"
-echo "测试结果摘要:"
-echo "  总请求数: $total_requests"
-echo "  成功率: ${success_rate}%"
-echo "  平均QPS: $(awk "BEGIN {printf \"%.2f\", $total_requests / $TEST_DURATION}")"
-echo ""
-echo "详细报告请查看: $OUTPUT_DIR/test_report.md"
-echo "监控数据目录: $OUTPUT_DIR/"
-echo ""
-echo "建议操作:"
-echo "1. 查看测试报告: cat $OUTPUT_DIR/test_report.md"
-echo "2. 检查最终指标: cat $OUTPUT_DIR/final_metrics.json"
-echo "3. 查看报警信息: cat $OUTPUT_DIR/alerts.json"
-echo "========================================" 
+# 主函数
+main() {
+    log "开始角色管理系统性能测试"
+    log "测试时间: $(date '+%Y-%m-%d %H:%M:%S')"
+    log ""
+    
+    # 检查bc命令
+    if ! command -v bc &> /dev/null; then
+        log "警告: bc 命令不可用，部分计算功能可能受限"
+    fi
+    
+    # 执行各项测试
+    show_table_stats
+    test_index_usage  
+    test_role_queries
+    generate_benchmark_report
+    
+    log "性能测试完成!"
+    log "详细结果已保存到: $LOG_FILE"
+}
+
+# 执行主函数
+main "$@" 

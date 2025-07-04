@@ -1,12 +1,16 @@
 package admin
 
 import (
+	"fmt"
 	"log"
 	"nasa-go-admin/inout"
+	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/services/admin_service"
 	"nasa-go-admin/services/public_service"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 var systemService = &admin_service.SystemService{}
@@ -35,16 +39,14 @@ func GetSystemLog(c *gin.Context) {
 
 // GetUserLog
 func GetUserLog(c *gin.Context) {
-	var req inout.GetSystemLogReq
+	var req inout.GetUserLogReq
 	if err := c.ShouldBind(&req); err != nil {
 		Resp.Err(c, 20001, err.Error())
 		return
 	}
 
-	// 设置默认值已在服务层处理，这里可以省略
-
-	// 调用修改后的服务方法
-	result, err := systemService.GetSystemLog(req, "app_log_db")
+	// 调用用户日志服务方法
+	result, err := systemService.GetUserLog(req)
 	if err != nil {
 		Resp.Err(c, 20001, err.Error())
 		return
@@ -126,15 +128,167 @@ func GetAllDictType(c *gin.Context) {
 
 // PostnoticeInfo 系统公告控制器
 func PostnoticeInfo(c *gin.Context) {
-	content := "系统将于今晚23:00-23:30进行例行维护，请提前做好准备"
-
-	wsService := public_service.GetWebSocketService()
-	err := wsService.BroadcastSystemNotice(content)
-	if err != nil {
-		log.Printf("发送系统公告失败: %v", err)
+	var req inout.SystemNoticeReq
+	if err := c.ShouldBindJSON(&req); err != nil {
+		Resp.Err(c, 20001, "请求参数错误: "+err.Error())
+		return
 	}
 
-	// 返回API响应...
+	// 验证内容长度
+	if len(req.Content) == 0 {
+		Resp.Err(c, 20001, "通知内容不能为空")
+		return
+	}
+	if len(req.Content) > 500 {
+		Resp.Err(c, 20001, "通知内容不能超过500字符")
+		return
+	}
+
+	// 获取发送者信息
+	senderID := c.GetInt("uid")
+	senderName := "unknown"
+	if userInfo, exists := c.Get("userInfo"); exists {
+		if user, ok := userInfo.(map[string]string); ok {
+			if name, exists := user["username"]; exists {
+				senderName = name
+			}
+		}
+	}
+
+	wsService := public_service.GetWebSocketService()
+	var err error
+	var messageID string
+	var targetText string
+	var recipientsCount string
+
+	// 根据推送目标创建不同的通知消息
+	switch req.Target {
+	case "all":
+		// 广播给所有用户
+		msg := &public_service.NotificationMessage{
+			Type:      public_service.SystemNotice,
+			Content:   req.Content,
+			Time:      time.Now().Format("2006-01-02 15:04:05"),
+			Priority:  public_service.PriorityNormal,
+			Target:    public_service.TargetAll,
+			MessageID: generateMessageID(),
+		}
+		err = wsService.SendNotification(msg)
+		messageID = msg.MessageID
+		targetText = "all"
+		recipientsCount = "all_online_users"
+	case "admin":
+		// 只发送给管理员
+		msg := &public_service.NotificationMessage{
+			Type:      public_service.SystemNotice,
+			Content:   req.Content,
+			Time:      time.Now().Format("2006-01-02 15:04:05"),
+			Priority:  public_service.PriorityNormal,
+			Target:    public_service.TargetAdmin,
+			MessageID: generateMessageID(),
+		}
+		err = wsService.SendNotification(msg)
+		messageID = msg.MessageID
+		targetText = "admin"
+		recipientsCount = "all_admins"
+	case "custom":
+		// 发送给指定用户
+		if len(req.UserIDs) == 0 {
+			Resp.Err(c, 20001, "自定义推送需要指定用户ID列表")
+			return
+		}
+
+		msg := &public_service.NotificationMessage{
+			Type:      public_service.SystemNotice,
+			Content:   req.Content,
+			Time:      time.Now().Format("2006-01-02 15:04:05"),
+			Priority:  public_service.PriorityNormal,
+			Target:    public_service.TargetCustom,
+			TargetIDs: req.UserIDs,
+			MessageID: generateMessageID(),
+		}
+		err = wsService.SendNotification(msg)
+		messageID = msg.MessageID
+		targetText = "custom"
+		recipientsCount = fmt.Sprintf("%d_users", len(req.UserIDs))
+	default:
+		// 默认广播给所有用户
+		err = wsService.BroadcastSystemNotice(req.Content)
+		targetText = "all"
+		recipientsCount = "all_online_users"
+	}
+
+	// 构建推送状态响应
+	pushStatus := map[string]interface{}{
+		"success":          err == nil,
+		"message":          req.Content,
+		"push_time":        time.Now().Format("2006-01-02 15:04:05"),
+		"target":           targetText,
+		"message_type":     req.Type,
+		"recipients_count": recipientsCount,
+	}
+
+	if messageID != "" {
+		pushStatus["message_id"] = messageID
+	}
+
+	// 保存推送记录到MongoDB
+	recordService := admin_service.NewNotificationRecordService()
+	pushRecord := &admin_model.PushRecord{
+		MessageID:       messageID,
+		Content:         req.Content,
+		MessageType:     req.Type,
+		Target:          targetText,
+		TargetUserIDs:   req.UserIDs,
+		RecipientsCount: recipientsCount,
+		Status:          "delivered",
+		Success:         err == nil,
+		PushTime:        time.Now().Format("2006-01-02 15:04:05"),
+		SenderID:        senderID,
+		SenderName:      senderName,
+		Priority:        1, // 普通优先级
+		NeedConfirm:     false,
+	}
+
+	if err != nil {
+		// 推送失败
+		pushStatus["error"] = err.Error()
+		pushStatus["error_code"] = "PUSH_FAILED"
+		pushStatus["status"] = "failed"
+		pushRecord.Status = "failed"
+		pushRecord.Error = err.Error()
+		pushRecord.ErrorCode = "PUSH_FAILED"
+
+		log.Printf("发送系统公告失败: %v", err)
+
+		// 保存失败记录
+		go func() {
+			if saveErr := recordService.SavePushRecord(pushRecord); saveErr != nil {
+				log.Printf("保存推送记录失败: %v", saveErr)
+			}
+		}()
+
+		Resp.Err(c, 20001, "推送失败: "+err.Error())
+		return
+	}
+
+	// 推送成功
+	pushStatus["status"] = "delivered"
+	log.Printf("系统公告推送成功: %s, 目标: %s", req.Content, targetText)
+
+	// 保存成功记录
+	go func() {
+		if saveErr := recordService.SavePushRecord(pushRecord); saveErr != nil {
+			log.Printf("保存推送记录失败: %v", saveErr)
+		}
+	}()
+
+	Resp.Succ(c, pushStatus)
+}
+
+// generateMessageID 生成消息ID的辅助函数
+func generateMessageID() string {
+	return fmt.Sprintf("%d-%s", time.Now().UnixNano(), uuid.New().String()[:8])
 }
 
 // 群组控制器
@@ -277,3 +431,29 @@ func PostnoticeInfo(c *gin.Context) {
 //         log.Printf("发送未读消息通知失败: %v", err)
 //     }
 // }
+
+// ClearSystemLog 清空系统访问日志
+func ClearSystemLog(c *gin.Context) {
+	// 调用服务方法清空系统日志
+	result, err := systemService.ClearSystemLog("admin_log_db")
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+
+	// 使用统一响应方法
+	Resp.Succ(c, result)
+}
+
+// ClearUserLog 清空用户端操作日志
+func ClearUserLog(c *gin.Context) {
+	// 调用服务方法清空用户日志
+	result, err := systemService.ClearSystemLog("app_log_db")
+	if err != nil {
+		Resp.Err(c, 20001, err.Error())
+		return
+	}
+
+	// 使用统一响应方法
+	Resp.Succ(c, result)
+}

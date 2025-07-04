@@ -21,7 +21,7 @@ import (
 func RequestLogger(logType string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 跳过特定路径的日志记录
-		if c.Request.URL.Path == "/api/admin/system/log" {
+		if c.Request.URL.Path == "/api/admin/system/log" || c.Request.URL.Path == "/api/admin/system/user/log" {
 			c.Next()
 			return
 		}
