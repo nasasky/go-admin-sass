@@ -1,3 +1,8 @@
+-- 为用户表添加索引
+CREATE INDEX IF NOT EXISTS idx_user_username ON user(username);
+CREATE INDEX IF NOT EXISTS idx_user_phone ON user(phone);
+CREATE INDEX IF NOT EXISTS idx_user_username_phone ON user(username, phone);
+
 -- 为字典类型表添加索引
 CREATE INDEX IF NOT EXISTS idx_dict_type_code ON sys_dict_type(type_code);
 CREATE INDEX IF NOT EXISTS idx_dict_type_del_flag ON sys_dict_type(del_flag);

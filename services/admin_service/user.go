@@ -1,7 +1,9 @@
 package admin_service
 
 import (
+	"context"
 	"crypto/md5"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -9,12 +11,14 @@ import (
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/pkg/jwt"
 	"nasa-go-admin/pkg/monitoring"
+	"nasa-go-admin/pkg/security"
 	"nasa-go-admin/redis"
 	"reflect"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
@@ -92,123 +96,106 @@ func (s *TenantsService) UserExists(username string) bool {
 }
 
 // Login
-func (s *TenantsService) LoginTenants(c *gin.Context, username, password string) (map[string]interface{}, error) {
-	var users admin_model.AdminUser
-	hashedPassword := fmt.Sprintf("%x", md5.Sum([]byte(password)))
-	err := db.Dao.Where("(username = ? OR phone = ?) AND password = ?", username, username, hashedPassword).First(&users).Error
-
-	// 如果没有找到记录，则返回提示用户不存在
-	if err != nil {
-		Resp.Err(c, 20001, "用户不存在或密码错误")
-		return nil, err
-	}
-
-	// 如果密码不正确，则返回提示密码错误
-	if users.Password != hashedPassword {
-		Resp.Err(c, 20001, "密码错误")
-		return nil, fmt.Errorf("密码错误")
-	}
-
-	token, err := jwt.GenerateAdminToken(users.ID, users.RoleId, users.UserType, time.Hour*24)
-	if err != nil {
-		return nil, fmt.Errorf("生成令牌失败: %w", err)
-	}
-	users.Token = token
-	expiration := time.Hour * 24 // 过期时间为 24 小时
-	// 存储 Token
-	err = redis.StoreToken(strconv.Itoa(users.ID), users.Token, expiration)
-	if err != nil {
-		// 如果存储 Token 失败，直接返回错误
-		return nil, err
-	}
-
-	// 存储用户信息
-	err = redis.StoreUserInfo(strconv.Itoa(users.ID), map[string]interface{}{
-		"username": users.Username,
-		"phone":    users.Phone,
-		"roleId":   users.RoleId,
-		"userType": users.UserType,
-		"token":    users.Token,
-		"parentId": users.ParentId,
-	}, expiration)
-	if err != nil {
-		// 如果存储用户信息失败，直接返回错误
-		return nil, err
-	}
-
-	permissions := getPermissionListByRoleId(users.RoleId)
-
-	// 记录用户登录指标
-	monitoring.RecordUserLogin()
-	monitoring.SaveBusinessMetric("user_login", users.Username)
-
-	// 过滤掉值为空的字段
-	responseData := map[string]interface{}{
-		"user":        users,
-		"permissions": permissions,
-		"token":       users.Token,
-	}
-	return responseData, nil
-}
-
-// Login
 func (s *TenantsService) Login(c *gin.Context, username, password string) (map[string]interface{}, error) {
-	var user admin_model.AdminUser
-	hashedPassword := fmt.Sprintf("%x", md5.Sum([]byte(password)))
-	err := db.Dao.Where("(username = ? OR phone = ?) AND password = ?", username, username, hashedPassword).First(&user).Error
+	// 1. 从Redis获取验证码
+	session := sessions.Default(c)
+	captcha := session.Get("captch")
+	if captcha == nil {
+		return nil, fmt.Errorf("验证码已过期")
+	}
 
-	// 如果没有找到记录，则返回提示用户不存在
+	// 2. 验证验证码
+	reqCaptcha := c.PostForm("captcha")
+	if reqCaptcha == "" {
+		return nil, fmt.Errorf("请输入验证码")
+	}
+	if reqCaptcha != captcha.(string) {
+		return nil, fmt.Errorf("验证码错误")
+	}
+
+	// 3. 清除验证码
+	session.Delete("captch")
+	session.Save()
+
+	// 4. 使用索引查询用户
+	var user admin_model.AdminUser
+	err := db.Dao.Where("username = ? OR phone = ?", username, username).First(&user).Error
 	if err != nil {
-		Resp.Err(c, 20001, "用户不存在或密码错误")
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("用户不存在")
+		}
 		return nil, err
 	}
 
-	// 如果密码不正确，则返回提示密码错误
-	if user.Password != hashedPassword {
-		Resp.Err(c, 20001, "密码错误")
+	// 5. 验证密码
+	var passwordValid bool
+	if user.PasswordBcrypt != "" {
+		// 使用bcrypt验证密码
+		passwordValid = security.CheckPasswordHash(password, user.PasswordBcrypt)
+	} else {
+		// 兼容旧的MD5密码
+		hashedPassword := fmt.Sprintf("%x", md5.Sum([]byte(password)))
+		passwordValid = (user.Password == hashedPassword)
+
+		// 如果使用旧密码验证成功，升级到bcrypt
+		if passwordValid {
+			newHash, err := security.HashPassword(password)
+			if err == nil {
+				db.Dao.Model(&user).Update("password_bcrypt", newHash)
+			}
+		}
+	}
+
+	if !passwordValid {
 		return nil, fmt.Errorf("密码错误")
 	}
 
+	// 6. 生成Token
 	token, err := jwt.GenerateAdminToken(user.ID, user.RoleId, user.UserType, time.Hour*24)
 	if err != nil {
 		return nil, fmt.Errorf("生成令牌失败: %w", err)
 	}
 	user.Token = token
-	expiration := time.Hour * 24 // 过期时间为 24 小时
-	err = redis.StoreToken(strconv.Itoa(user.ID), user.Token, expiration)
 
-	if err != nil {
-		return nil, err
-	}
-	err = redis.DeleteKey(strconv.Itoa(user.ID)) // 删除旧键
-	if err != nil && err != redis.ErrNil {
-		return nil, fmt.Errorf("failed to delete old key: %v", err)
-	}
+	// 7. 使用Redis管道操作优化缓存性能
+	expiration := time.Hour * 24
+	pipe := redis.GetClient().Pipeline()
 
-	err = redis.StoreUserInfo(strconv.Itoa(user.ID), map[string]interface{}{
+	// 存储Token
+	pipe.Set(context.Background(), fmt.Sprintf("token:%d", user.ID), user.Token, expiration)
+
+	// 存储用户信息
+	userInfo := map[string]interface{}{
 		"username": user.Username,
 		"phone":    user.Phone,
 		"roleId":   user.RoleId,
 		"userType": user.UserType,
 		"token":    user.Token,
 		"parentId": user.ParentId,
-	}, expiration)
-	if err != nil {
-		return nil, fmt.Errorf("failed to store user info: %v", err)
 	}
+	userInfoJSON, _ := json.Marshal(userInfo)
+	pipe.Set(context.Background(), fmt.Sprintf("user:%d", user.ID), userInfoJSON, expiration)
+
+	// 执行管道操作
+	if _, err := pipe.Exec(context.Background()); err != nil {
+		return nil, fmt.Errorf("缓存用户信息失败: %v", err)
+	}
+
+	// 8. 获取权限列表
 	permissions := getPermissionListByRoleId(user.RoleId)
 
-	// 记录用户登录指标
-	monitoring.RecordUserLogin()
-	monitoring.SaveBusinessMetric("user_login", user.Username)
+	// 9. 记录登录指标（异步）
+	go func() {
+		monitoring.RecordUserLogin()
+		monitoring.SaveBusinessMetric("user_login", user.Username)
+	}()
 
+	// 10. 返回响应数据
 	responseData := map[string]interface{}{
 		"user":        user,
 		"permissions": permissions,
 		"token":       user.Token,
 	}
-	fmt.Println(user)
-	c.Set("userInfo", user)
 	return responseData, nil
 }
 

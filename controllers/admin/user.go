@@ -7,6 +7,9 @@ import (
 	"nasa-go-admin/services/admin_service"
 	"strconv"
 
+	"nasa-go-admin/utils"
+
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -63,9 +66,9 @@ func TenantsLogin(c *gin.Context) {
 		return
 	}
 	// Check if the phone number already exists
-	user, err := tenantsService.LoginTenants(c, params.Username, params.Password)
+	user, err := tenantsService.Login(c, params.Username, params.Password)
 	if err != nil {
-		//Resp.Err(c, 20001, err.Error())
+		Resp.Err(c, 20001, err.Error())
 		return
 	}
 	Resp.Succ(c, user)
@@ -73,20 +76,19 @@ func TenantsLogin(c *gin.Context) {
 
 // login
 func Login(c *gin.Context) {
-
 	var params inout.LoginAdminReq
 	if err := c.ShouldBind(&params); err != nil {
 		Resp.Err(c, 20001, err.Error())
 		return
 	}
-	// Check if the phone number already exists
+
+	// 验证码校验已经移到了service层
 	user, err := tenantsService.Login(c, params.Username, params.Password)
 	if err != nil {
-		//Resp.Err(c, 20001, err.Error())
+		Resp.Err(c, 20001, err.Error())
 		return
 	}
 	Resp.Succ(c, user)
-
 }
 
 // GetRoute
@@ -243,4 +245,21 @@ func Logout(c *gin.Context) {
 	tenantsService.Logout(c)
 	Resp.Succ(c, nil)
 
+}
+
+// GetCaptcha 获取验证码
+func GetCaptcha(c *gin.Context) {
+	svg, code := utils.GenerateSVG(80, 40)
+	session := sessions.Default(c)
+	session.Set("captch", code)
+	session.Save()
+
+	// 设置响应头
+	c.Header("Content-Type", "image/svg+xml; charset=utf-8")
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
+	// 返回验证码图片
+	c.Data(200, "image/svg+xml", svg)
 }

@@ -27,6 +27,7 @@ func InitAdmin(r *gin.Engine) {
 	// 登录相关接口
 	noAuthGroup.POST("/login", admin.Login)
 	noAuthGroup.POST("/tenants/login", admin.TenantsLogin)
+	noAuthGroup.GET("/captcha", admin.GetCaptcha) // 添加验证码接口
 
 	// 在 InitAdmin 函数中的 noAuthGroup 部分添加
 	noAuthGroup.GET("/wechat/verify", public.WechatVerify)
