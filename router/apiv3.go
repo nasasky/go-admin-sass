@@ -35,6 +35,9 @@ func InitAdmin(r *gin.Engine) {
 	// 在 InitAdmin 函数中的 noAuthGroup 部分添加
 	noAuthGroup.GET("/wechat/verify", public.WechatVerify)
 
+	// 飞书消息推送接口 - 不需要验证Token
+	noAuthGroup.POST("/feishu/send", middleware.ValidationMiddleware(&inout.FeishuSendReq{}), admin.SendFeishuMessage)
+
 	// 系统字典相关接口
 	noAuthGroup.GET("/system/dict/type", middleware.ValidationMiddleware(&inout.ListpageReq{}), admin.GetDictType)
 	noAuthGroup.GET("/system/dict/detail", middleware.ValidationMiddleware(&inout.DicteReq{}), admin.GetDictDetail)
@@ -43,6 +46,9 @@ func InitAdmin(r *gin.Engine) {
 
 	// 系统信息公开接口
 	noAuthGroup.GET("/system/info/first", admin.GetFirstSystemInfo)
+
+	// 内容处理接口（无需验证）
+	noAuthGroup.POST("/content/process", admin.ProcessContent)
 
 	// 需要验证 Token 的路由组
 	authGroup := r.Group("/api/admin")
@@ -255,12 +261,16 @@ func InitAdmin(r *gin.Engine) {
 
 		//获取系统会员列表
 		authGroup.GET("/member/list", admin.GetMemberList)
+		//导出系统会员列表
+		authGroup.GET("/member/export", admin.ExportMemberList)
+		//获取会员统计数据（折线图）
+		authGroup.GET("/member/stats", admin.GetMemberStats)
 
 		//获取飞书应用配置
 		authGroup.GET("/feishu/get", admin.GetFeishuGroupListdata)
 
-		//推送飞书机器人消息
-		authGroup.POST("/feishu/send", middleware.ValidationMiddleware(&inout.FeishuSendReq{}), admin.SendFeishuMessage)
+		// 推送飞书机器人消息 - 已移至noAuthGroup
+		// authGroup.POST("/feishu/send", middleware.ValidationMiddleware(&inout.FeishuSendReq{}), admin.SendFeishuMessage)
 
 		//设置系统参数配置
 		authGroup.POST("/system/setting", middleware.ValidationMiddleware(&inout.SettingReq{}), admin.AddSetting)

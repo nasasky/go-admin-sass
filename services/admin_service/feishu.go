@@ -48,6 +48,13 @@ func (s *FeishuService) AddFeishuGroupList(c *gin.Context, resp admin_model.Feis
 
 // SendFeishuMessage 发送飞书消息
 func (s *FeishuService) SendFeishuMessage(c *gin.Context, req admin_model.FeishuMessageRequest) (int, error) {
+	// 获取新的token
+	token, err := getToken()
+	if err != nil {
+		log.Printf("Error getting fresh token: %v", err)
+		return 0, fmt.Errorf("failed to get token: %v", err)
+	}
+
 	// 飞书消息推送https://open.feishu.cn/open-apis/im/v1/messages
 	baseURL := "https://open.feishu.cn/open-apis/im/v1/messages"
 	// 设置查询参数
@@ -60,7 +67,7 @@ func (s *FeishuService) SendFeishuMessage(c *gin.Context, req admin_model.Feishu
 	// 请求头
 	headers := map[string]string{
 		"Content-Type":  "application/json",
-		"Authorization": "Bearer " + GetToken(),
+		"Authorization": "Bearer " + token,
 	}
 	// 将 content 转换为 JSON 字符串
 	content := map[string]string{
@@ -78,6 +85,7 @@ func (s *FeishuService) SendFeishuMessage(c *gin.Context, req admin_model.Feishu
 		"msg_type":   req.MsgType,
 		"content":    string(contentJSON),
 	}
+	fmt.Println("请求体:", body)
 
 	// 转json
 	jsonStr, err := json.Marshal(body)

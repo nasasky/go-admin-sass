@@ -38,16 +38,26 @@ func UpdateNews(c *gin.Context) {
 }
 
 func GetNewsList(c *gin.Context) {
-	var req inout.GetNewsListReq
+	// 修改：现在返回百度热搜数据
+	var req inout.GetBaiduHotSearchReq
 	if err := c.ShouldBind(&req); err != nil {
 		Resp.Err(c, 20001, err.Error())
 		return
 	}
-	data, err := newsService.GetNewsList(c, req)
+
+	// 设置默认获取20条数据
+	count := req.Count
+	if count <= 0 {
+		count = 20
+	}
+
+	// 调用百度热搜服务获取数据
+	data, err := admin_service.BaiduHotSearchSvc.GetBaiduHotSearch(c, count)
 	if err != nil {
-		Resp.Err(c, 20001, err.Error())
+		Resp.Err(c, 20001, "获取百度热搜失败: "+err.Error())
 		return
 	}
+
 	Resp.Succ(c, data)
 }
 

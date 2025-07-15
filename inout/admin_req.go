@@ -182,6 +182,26 @@ type ListpageReq struct {
 	PageSize int    `form:"page_size"`
 	Search   string `form:"search"`
 }
+
+// GetMemberListReq 会员列表请求 - 支持更精确的搜索
+type GetMemberListReq struct {
+	Page     int    `form:"page"`
+	PageSize int    `form:"page_size"`
+	Search   string `form:"search"`   // 通用搜索（兼容性）
+	Name     string `form:"name"`     // 按姓名搜索
+	Phone    string `form:"phone"`    // 按手机号搜索
+	Username string `form:"username"` // 按用户名搜索
+}
+
+// ExportMemberListReq 导出会员列表请求
+type ExportMemberListReq struct {
+	Search    string `form:"search"`     // 通用搜索（兼容性）
+	Name      string `form:"name"`       // 按姓名搜索
+	Phone     string `form:"phone"`      // 按手机号搜索
+	Username  string `form:"username"`   // 按用户名搜索
+	StartDate string `form:"start_date"` // 开始日期 (格式: 2024-01-01)
+	EndDate   string `form:"end_date"`   // 结束日期 (格式: 2024-01-01)
+}
 type DicteReq struct {
 	Id       int    `form:"id" binding:"required"`
 	Page     int    `form:"page"`
@@ -320,4 +340,102 @@ type SystemNoticeReq struct {
 	Type    string `json:"type"`                       // 通知类型：system_notice, system_maintain, system_upgrade
 	Target  string `json:"target"`                     // 推送目标：all, admin, custom
 	UserIDs []int  `json:"user_ids"`                   // 当target为custom时，指定用户ID列表
+}
+
+// ========== 会员统计相关请求响应 ==========
+
+// GetMemberStatsReq 获取会员统计数据请求
+type GetMemberStatsReq struct {
+	Type      string `form:"type" binding:"required,oneof=daily weekly monthly"` // 统计类型：daily-每日，weekly-每周，monthly-每月
+	StartDate string `form:"start_date"`                                         // 开始日期 (格式: 2024-01-01)
+	EndDate   string `form:"end_date"`                                           // 结束日期 (格式: 2024-01-01)
+	Days      int    `form:"days" binding:"min=1,max=365"`                       // 查询天数，如果不提供start_date和end_date，则从当前日期往前推算
+}
+
+// MemberStatsResp 会员统计数据响应
+type MemberStatsResp struct {
+	Type      string                  `json:"type"`       // 统计类型
+	DateRange *DateRangeInfo          `json:"date_range"` // 日期范围信息
+	Summary   *MemberStatsSummary     `json:"summary"`    // 汇总统计信息
+	ChartData []MemberStatsChartPoint `json:"chart_data"` // 折线图数据点
+	TrendInfo *MemberTrendInfo        `json:"trend_info"` // 趋势信息
+	UpdatedAt string                  `json:"updated_at"` // 数据更新时间
+}
+
+// DateRangeInfo 日期范围信息
+type DateRangeInfo struct {
+	StartDate   string `json:"start_date"`   // 开始日期
+	EndDate     string `json:"end_date"`     // 结束日期
+	TotalDays   int    `json:"total_days"`   // 总天数
+	CurrentDate string `json:"current_date"` // 当前日期
+}
+
+// MemberStatsSummary 会员统计汇总信息
+type MemberStatsSummary struct {
+	TotalMembers        int     `json:"total_members"`          // 总会员数
+	NewMembersInPeriod  int     `json:"new_members_in_period"`  // 周期内新增会员数
+	AvgDailyNewMembers  float64 `json:"avg_daily_new_members"`  // 日均新增会员数
+	PeakNewMembersDay   string  `json:"peak_new_members_day"`   // 新增会员最多的一天
+	PeakNewMembersCount int     `json:"peak_new_members_count"` // 新增会员最多的一天的数量
+	GrowthRate          float64 `json:"growth_rate"`            // 增长率(%)
+}
+
+// MemberStatsChartPoint 折线图数据点
+type MemberStatsChartPoint struct {
+	Date          string `json:"date"`           // 日期（X轴）
+	NewMembers    int    `json:"new_members"`    // 新增会员数（Y轴1）
+	TotalMembers  int    `json:"total_members"`  // 累计会员数（Y轴2）
+	DayOfWeek     string `json:"day_of_week"`    // 星期几
+	FormattedDate string `json:"formatted_date"` // 格式化的日期显示
+}
+
+// MemberTrendInfo 会员趋势信息
+type MemberTrendInfo struct {
+	Trend          string  `json:"trend"`            // 趋势：up-上升，down-下降，stable-稳定
+	TrendPercent   float64 `json:"trend_percent"`    // 趋势百分比
+	TrendDesc      string  `json:"trend_desc"`       // 趋势描述
+	ComparedToPrev string  `json:"compared_to_prev"` // 与前一个周期对比
+}
+
+// ProcessContentReq 处理内容请求
+type ProcessContentReq struct {
+	Content string `form:"content" binding:"required" json:"content"` // 内容参数
+}
+
+// ProcessContentResp 处理内容响应
+type ProcessContentResp struct {
+	Message     string `json:"message"`      // 处理结果消息
+	ProcessTime string `json:"process_time"` // 处理时间
+	ContentInfo struct {
+		Length      int    `json:"length"`       // 内容长度
+		WordCount   int    `json:"word_count"`   // 单词数量
+		CharCount   int    `json:"char_count"`   // 字符数量
+		ProcessedAt string `json:"processed_at"` // 处理时间戳
+	} `json:"content_info"` // 内容信息
+}
+
+// BaiduHotSearchItem 百度热搜项目
+type BaiduHotSearchItem struct {
+	Rank       int    `json:"rank"`        // 排名
+	Title      string `json:"title"`       // 标题
+	HotValue   string `json:"hot_value"`   // 热度值
+	Link       string `json:"link"`        // 链接
+	Tag        string `json:"tag"`         // 标签（热、新等）
+	Desc       string `json:"desc"`        // 描述
+	ImageUrl   string `json:"image_url"`   // 图片链接
+	UpdateTime string `json:"update_time"` // 更新时间
+}
+
+// BaiduHotSearchResp 百度热搜响应
+type BaiduHotSearchResp struct {
+	Code       int                  `json:"code"`        // 状态码
+	Message    string               `json:"message"`     // 消息
+	Data       []BaiduHotSearchItem `json:"data"`        // 热搜数据
+	Total      int                  `json:"total"`       // 总数
+	UpdateTime string               `json:"update_time"` // 更新时间
+}
+
+// GetBaiduHotSearchReq 获取百度热搜请求
+type GetBaiduHotSearchReq struct {
+	Count int `form:"count" json:"count"` // 获取数量，默认20
 }
