@@ -1,0 +1,1374 @@
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[61.363ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:38:36.109'
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.485ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:08:36.171' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.834ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.839ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[191.683ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:38:36.115'
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.293ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:08:36.29' AND status != 'pending'
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[62.250ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:08:36.307' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.766ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[60.287ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:08:36.35' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.789ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.505ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:08:36.41'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[61.547ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:08:36.431' AND status != 'pending'
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[61.920ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:08:36.493' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:08:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[61.873ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:08:36.555'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[68.143ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:09:36.112'
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[61.422ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:09:36.112'
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[61.941ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:09:36.112'
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[62.057ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:39:36.472'
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[61.815ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:09:36.534' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.570ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.726ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[61.288ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:39:36.618'
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[62.046ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:09:36.658' AND status != 'pending'
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[60.533ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:09:36.68' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.907ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[61.671ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:09:36.72' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.542ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[61.439ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:09:36.782'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.689ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:09:36.801' AND status != 'pending'
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.005ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:09:36.86' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:09:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[64.308ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:09:36.92'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[61.061ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:55:36.111' LIMIT 50
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[62.181ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:10:36.11'
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[62.068ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:10:36.11'
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[62.150ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:10:36.11'
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[183.581ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:55:36.117' LIMIT 50
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[60.078ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:40:36.473'
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.704ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:10:36.533' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.542ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.449ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[63.268ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:40:36.619'
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[60.337ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:10:36.652' AND status != 'pending'
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[60.732ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:10:36.683' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.368ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:10:36.713' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.255ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.928ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.383ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:10:36.773'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[61.723ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:10:36.804' AND status != 'pending'
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[62.062ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:10:36.866' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:10:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[63.613ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:10:36.928'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[61.922ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:11:36.111'
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[62.067ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:11:36.111'
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[62.106ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:11:36.111'
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[61.975ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:41:36.474'
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[62.235ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:11:36.536' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.541ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.698ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[59.375ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:41:36.62'
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[63.068ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:11:36.66' AND status != 'pending'
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.515ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:11:36.68' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.707ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[61.796ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:11:36.723' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.949ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[61.927ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:11:36.785'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.853ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:11:36.799' AND status != 'pending'
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[60.290ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:11:36.859' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:11:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[60.139ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:11:36.92'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[62.819ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:12:36.112'
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[63.508ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:57:36.112' LIMIT 50
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[59.041ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:57:36.118' LIMIT 50
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[59.847ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:12:36.112'
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[59.855ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:12:36.112'
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[60.131ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:42:36.474'
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[61.577ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:12:36.534' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.641ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.124ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[59.806ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:42:36.621'
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[58.946ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:12:36.656' AND status != 'pending'
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.214ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:12:36.681' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.196ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[58.232ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:12:36.715' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.569ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[58.755ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:12:36.774'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.797ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:12:36.8' AND status != 'pending'
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[60.389ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:12:36.86' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:12:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[60.216ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:12:36.921'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[64.696ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:13:36.113'
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[59.623ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:13:36.113'
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[60.804ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:13:36.113'
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[60.115ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:43:36.475'
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.936ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:13:36.535' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.587ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.824ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[59.983ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:43:36.621'
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.433ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:13:36.655' AND status != 'pending'
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[60.184ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:13:36.682' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.487ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.227ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:13:36.715' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.682ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.506ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:13:36.774'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[60.165ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:13:36.802' AND status != 'pending'
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[60.067ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:13:36.862' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:13:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.631ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:13:36.922'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[63.967ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:14:36.113'
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[65.381ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:59:36.113' LIMIT 50
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[60.904ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:59:36.12' LIMIT 50
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[59.460ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:14:36.113'
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[60.169ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:14:36.113'
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[60.374ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:44:36.476'
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.844ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:14:36.536' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.232ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.345ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[61.662ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:44:36.622'
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.807ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:14:36.655' AND status != 'pending'
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[61.174ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:14:36.684' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.494ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:14:36.715' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.558ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.121ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.778ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:14:36.775'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[61.344ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:14:36.806' AND status != 'pending'
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[62.007ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:14:36.867' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:14:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[62.108ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:14:36.929'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[66.503ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:15:36.114'
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[61.663ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:15:36.114'
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[61.935ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:15:36.114'
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[61.980ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:45:36.476'
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[61.847ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:15:36.538' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[31.559ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.989ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[59.717ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:45:36.623'
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[61.948ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:15:36.663' AND status != 'pending'
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[60.683ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:15:36.682' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.530ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[61.898ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:15:36.725' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.877ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[61.553ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:15:36.787'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.551ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:15:36.803' AND status != 'pending'
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.157ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:15:36.863' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:15:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.866ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:15:36.922'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:67
+[65.622ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 2 AND start_time <= '2025-06-21 00:16:36.114'
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[60.202ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-21 00:01:36.121' LIMIT 50
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_system_init.go:163
+[66.979ms] [rows:0] SELECT `no` FROM `order` WHERE status = 'pending' AND create_time < '2025-06-21 00:01:36.115' LIMIT 50
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:121
+[60.251ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 3 AND end_time <= '2025-06-21 00:16:36.114'
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/booking_scheduler.go:194
+[59.679ms] [rows:0] SELECT * FROM `room_bookings` WHERE status = 1 AND create_time <= '2025-06-20 00:16:36.114'
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[60.831ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:46:36.477'
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[59.710ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:16:36.538' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[29.318ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[29.385ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:129
+[62.450ms] [rows:0] SELECT * FROM `order` WHERE status = 'pending' AND create_time < '2025-06-20 23:46:36.624'
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[59.383ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:16:36.657' AND status != 'pending'
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:177
+[61.047ms] [rows:0] 
+		SELECT user_id, COUNT(*) as payment_count, SUM(amount) as total_amount
+		FROM app_recharge 
+		WHERE create_time > '2025-06-20 23:16:36.686' AND transaction_type = 'order_payment'
+		GROUP BY user_id
+		HAVING COUNT(*) > 20 OR SUM(amount) > 5000
+		ORDER BY payment_count DESC, total_amount DESC
+		LIMIT 20
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[59.996ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:16:36.717' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:201
+[30.172ms] [rows:0] SELECT * FROM `goods_list` WHERE stock < 0 AND isdelete != 1
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:217
+[30.855ms] [rows:0] SELECT * FROM `goods_list` WHERE stock > 0 AND stock < 10 AND status = '1' AND isdelete != 1
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[59.343ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:16:36.777'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:246
+[61.661ms] [rows:1] 
+		SELECT 
+			COUNT(*) as total_orders,
+			AVG(TIMESTAMPDIFF(SECOND, create_time, update_time)) as avg_duration
+		FROM app_order 
+		WHERE create_time > '2025-06-20 23:16:36.809' AND status != 'pending'
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:305
+[61.593ms] [rows:1] 
+		SELECT 
+			'orphaned_payments' as issue,
+			COUNT(*) as count,
+			'支付记录无对应订单' as description
+		FROM app_recharge ar 
+		WHERE ar.transaction_type = 'order_payment' 
+		AND ar.create_time > '2025-06-20 23:16:36.871' 
+		AND ar.order_no IS NOT NULL
+		AND ar.order_no != ''
+		AND NOT EXISTS (
+			SELECT 1 FROM app_order ao 
+			WHERE ao.no = ar.order_no
+			AND ao.user_id = ar.user_id 
+			AND ABS(ao.amount - ar.amount) < 0.01
+		)
+	
+
+2025/06/21 00:16:36 /Users/wensiyuan/go/go-admin-sass-github/services/app_service/order_monitoring.go:343
+[62.279ms] [rows:1] 
+		SELECT 
+			'status_mismatch' as issue,
+			COUNT(*) as count,
+			'订单状态异常' as description
+		FROM app_order ao 
+		WHERE ao.create_time > '2025-06-20 23:16:36.932'
+		AND ao.status = 'paid'
+		AND NOT EXISTS (
+			SELECT 1 FROM app_recharge ar 
+			WHERE (
+				(ar.order_no = ao.no AND ar.user_id = ao.user_id) 
+				OR 
+				(ar.user_id = ao.user_id AND ABS(ar.amount - ao.amount) < 0.01
+				 AND ar.create_time BETWEEN ao.create_time - INTERVAL 10 MINUTE 
+			                           AND ao.create_time + INTERVAL 10 MINUTE)
+			)
+			AND ar.transaction_type = 'order_payment'
+			AND ar.status = 'completed'
+		)
+	
