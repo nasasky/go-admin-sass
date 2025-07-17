@@ -3,6 +3,7 @@ package admin_service
 import (
 	"context"
 	"fmt"
+	"log"
 	"nasa-go-admin/db"
 	"nasa-go-admin/model/admin_model"
 	"nasa-go-admin/pkg/cache"
@@ -69,8 +70,12 @@ func (s *PermissionService) fetchUserPermissionsFromDB(ctx context.Context, user
 		Table("user").
 		Where("id = ?", userID).
 		First(&user).Error; err != nil {
-		return nil, fmt.Errorf("获取用户信息失败: %w", err)
+		log.Printf("Failed to fetch user info for ID %d: %v", userID, err)
+		return nil, fmt.Errorf("获取用户信息失败: %v", err)
 	}
+
+	// Log user info for debugging
+	log.Printf("Found user %d with type %d and role %d", userID, user.UserType, user.RoleID)
 
 	result.UserType = user.UserType
 	result.RoleID = user.RoleID
@@ -86,10 +91,15 @@ func (s *PermissionService) fetchUserPermissionsFromDB(ctx context.Context, user
 		Table("role_permissions_permission").
 		Where("roleId = ?", user.RoleID).
 		Pluck("permissionId", &permissionIDs).Error; err != nil {
-		return nil, fmt.Errorf("获取角色权限失败: %w", err)
+		log.Printf("Failed to fetch permission IDs for role %d: %v", user.RoleID, err)
+		return nil, fmt.Errorf("获取角色权限失败: %v", err)
 	}
 
+	// Log permission IDs for debugging
+	log.Printf("Found %d permission IDs for role %d", len(permissionIDs), user.RoleID)
+
 	if len(permissionIDs) == 0 {
+		log.Printf("No permissions found for role %d, returning empty result", user.RoleID)
 		result.Permissions = []admin_model.PermissionUser{}
 		result.PermTree = []interface{}{}
 		result.Rules = []string{}
@@ -102,8 +112,12 @@ func (s *PermissionService) fetchUserPermissionsFromDB(ctx context.Context, user
 		Where("id IN ?", permissionIDs).
 		Order("sort DESC").
 		Find(&allPermissions).Error; err != nil {
-		return nil, fmt.Errorf("获取权限详情失败: %w", err)
+		log.Printf("Failed to fetch permission details for IDs %v: %v", permissionIDs, err)
+		return nil, fmt.Errorf("获取权限详情失败: %v", err)
 	}
+
+	// Log permissions for debugging
+	log.Printf("Found %d permissions for role %d", len(allPermissions), user.RoleID)
 
 	result.Permissions = allPermissions
 
@@ -119,6 +133,9 @@ func (s *PermissionService) fetchUserPermissionsFromDB(ctx context.Context, user
 		}
 	}
 	result.Rules = rules
+
+	// Log final result for debugging
+	log.Printf("Returning %d permissions and %d rules for user %d", len(allPermissions), len(rules), userID)
 
 	return result, nil
 }

@@ -65,6 +65,14 @@ mongodb:
       uri: "mongodb://localhost:27017"
       collections:
         connection_logs: "connection_logs"
+        event_logs: "event_logs"
+    notification_log_db:
+      uri: "mongodb://localhost:27017"
+      collections:
+        push_records: "push_records"
+        notification_logs: "notification_logs"
+        admin_user_receive_records: "admin_user_receive_records"
+        admin_user_online_status: "admin_user_online_status"
 
 # 日志配置
 log:
@@ -84,6 +92,14 @@ security:
   allowed_origins:
     - "http://localhost:3000"
     - "http://localhost:8080"
+    - "http://localhost:9848"
+    - "http://127.0.0.1:3000"
+    - "http://127.0.0.1:8080"
+    - "http://127.0.0.1:9848"
+    # 局域网段支持（开发环境）
+    - "http://192.168.*:*"
+    - "http://10.*:*"
+    - "http://172.16.*:*"
   trusted_proxies:
     - "127.0.0.1"
   rate_limit: 1000       # 每分钟请求数

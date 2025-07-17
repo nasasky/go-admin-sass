@@ -3,6 +3,7 @@ package router
 import (
 	"nasa-go-admin/api"
 	"nasa-go-admin/middleware"
+	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
@@ -10,8 +11,19 @@ import (
 )
 
 func Init(r *gin.Engine) {
-	// 使用 cookie 存储会话数据
-	r.Use(sessions.Sessions("mysession", cookie.NewStore([]byte("captch"))))
+	// 创建 cookie store 并设置选项
+	store := cookie.NewStore([]byte("nasa-go-admin-secret-key"))
+	store.Options(sessions.Options{
+		Path:     "/",                   // cookie 路径
+		Domain:   "",                    // 留空以使用当前域名
+		MaxAge:   3600,                  // cookie 过期时间（秒）
+		Secure:   false,                 // 开发环境设置为 false，生产环境应该设置为 true
+		HttpOnly: true,                  // 防止 XSS 攻击
+		SameSite: http.SameSiteNoneMode, // 允许跨域
+	})
+
+	// 使用配置好的 store
+	r.Use(sessions.Sessions("nasa-admin-session", store))
 	r.Use(middleware.Cors())
 
 	apiAdminGroup := r.Group("")

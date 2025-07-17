@@ -3,18 +3,32 @@ package api
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"nasa-go-admin/db"
 	"nasa-go-admin/inout"
 	"nasa-go-admin/model"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 var User = &user{}
 
 type user struct {
+}
+
+// stringToBool 将数据库中的string类型enable字段转换为bool
+func stringToBool(s string) bool {
+	return s == "active" || s == "1" || s == "true"
+}
+
+// boolToString 将bool类型转换为数据库中的string类型
+func boolToString(b bool) string {
+	if b {
+		return "active"
+	}
+	return "inactive"
 }
 
 func (user) Detail(c *gin.Context) {
@@ -63,7 +77,7 @@ func (user) List(c *gin.Context) {
 		data.PageData = append(data.PageData, inout.UserListItem{
 			ID:         uinfo.ID,
 			Username:   uinfo.Username,
-			Enable:     uinfo.Enable,
+			Enable:     stringToBool(uinfo.Enable),
 			CreateTime: uinfo.CreateTime,
 			UpdateTime: uinfo.UpdateTime,
 			Gender:     datum.Gender,
@@ -107,7 +121,7 @@ func (user) Update(c *gin.Context) {
 		orm.Update("password", fmt.Sprintf("%x", md5.Sum([]byte(*params.Password))))
 	}
 	if params.Enable != nil {
-		orm.Update("enable", *params.Enable)
+		orm.Update("enable", boolToString(*params.Enable))
 	}
 	if params.Username != nil {
 		orm.Update("username", *params.Username)
@@ -139,7 +153,7 @@ func (user) Add(c *gin.Context) {
 		var newUser = model.User{
 			Username:   params.Username,
 			Password:   fmt.Sprintf("%x", md5.Sum([]byte(params.Password))),
-			Enable:     params.Enable,
+			Enable:     boolToString(params.Enable),
 			CreateTime: time.Now(),
 			UpdateTime: time.Now(),
 		}

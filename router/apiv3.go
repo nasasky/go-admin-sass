@@ -24,9 +24,13 @@ func InitAdmin(r *gin.Engine) {
 	// 在应用程序的路由器设置中
 	noAuthGroup.Use(middleware.WebSocketLogger())
 	noAuthGroup.GET("/ws", public.WebSocketConnect)
+	// WebSocket监控端点
+	noAuthGroup.GET("/ws/stats", public.WebSocketStats)
+	noAuthGroup.GET("/ws/health", public.WebSocketHealth)
 	// 登录相关接口
 	noAuthGroup.POST("/login", admin.Login)
 	noAuthGroup.POST("/tenants/login", admin.TenantsLogin)
+	noAuthGroup.GET("/captcha", admin.GetCaptcha) // 添加验证码接口
 
 	// 在 InitAdmin 函数中的 noAuthGroup 部分添加
 	noAuthGroup.GET("/wechat/verify", public.WechatVerify)
@@ -37,20 +41,21 @@ func InitAdmin(r *gin.Engine) {
 	//获取所有字典类型和字典值
 	noAuthGroup.GET("/system/dict/all", admin.GetAllDictType)
 
-	// 系统访问日志接口
-	noAuthGroup.GET("/system/log", admin.GetSystemLog)
-
-	//获取用户端操作日志
-	noAuthGroup.GET("/system/user/log", admin.GetUserLog)
+	// 系统信息公开接口
+	noAuthGroup.GET("/system/info/first", admin.GetFirstSystemInfo)
 
 	// 获取系统信息（不需要验证token）
 	noAuthGroup.GET("/system/info", admin.GetSystemInfo)
 
 	// 需要验证 Token 的路由组
 	authGroup := r.Group("/api/admin")
-	authGroup.Use(middleware.AdminJWTAuth()) // 应用统一管理员JWT中间件
+	authGroup.Use(middleware.SecureAdminJWTAuth()) // 应用安全的管理员JWT中间件（支持Token黑名单）
 	authGroup.Use(middleware.RequestLogger("request_admin_log"))
 	authGroup.Use(middleware.UserInfoMiddleware())
+	authGroup.Use(middleware.RevokeTokenMiddleware()) // 添加Token撤销中间件
+
+	// 注册资讯news路由
+	RegisterNewsRoutes(authGroup)
 
 	// ========== 房间包厢管理接口 ==========
 	{
@@ -105,8 +110,31 @@ func InitAdmin(r *gin.Engine) {
 		authGroup.POST("/auth/logout", admin.Logout)
 
 		//发送系统消息通知
-
 		authGroup.POST("/system/notice", admin.PostnoticeInfo)
+
+		// 推送记录管理
+		authGroup.GET("/notification/records", admin.GetPushRecordList)
+		authGroup.GET("/notification/records/:id", admin.GetPushRecordDetail)
+		authGroup.DELETE("/notification/records/:id", admin.DeletePushRecord)
+		authGroup.GET("/notification/stats", admin.GetPushRecordStats)
+		authGroup.POST("/notification/records/:id/resend", admin.ResendNotification)
+
+		// 管理员用户接收记录管理（新增）
+		authGroup.GET("/notification/admin-receive-records", admin.GetAdminUserReceiveRecords)
+		authGroup.GET("/notification/messages/:messageID/receive-status", admin.GetMessageReceiveStatus)
+		authGroup.POST("/notification/mark-read", admin.MarkMessageAsRead)
+		authGroup.POST("/notification/mark-confirmed", admin.MarkMessageAsConfirmed)
+		authGroup.POST("/notification/batch-mark-read", admin.BatchMarkAsRead)
+		authGroup.GET("/notification/online-users", admin.GetOnlineAdminUsers)
+		authGroup.GET("/notification/admin-receive-stats", admin.GetAdminUserReceiveStats)
+		authGroup.GET("/notification/user-summary", admin.GetUserNotificationSummary)
+
+		// 离线消息管理（新增）
+		authGroup.GET("/notification/offline-messages", admin.GetOfflineMessages)
+		authGroup.DELETE("/notification/offline-messages", admin.ClearOfflineMessages)
+		// 管理员离线消息管理（新增）
+		authGroup.GET("/notification/all-offline-messages", admin.GetAllUsersOfflineMessages)
+		authGroup.DELETE("/notification/all-offline-messages", admin.ClearAllUsersOfflineMessages)
 
 		authGroup.POST("/tenants/add", middleware.ValidationMiddleware(&inout.AddTenantsReq{}), admin.TenantsRegister) //添加租户
 		//编辑租户
@@ -120,6 +148,10 @@ func InitAdmin(r *gin.Engine) {
 
 		//获取用户信息
 		authGroup.GET("/tenants/info", admin.GetUserInfo)
+		//修改用户信息
+		authGroup.PUT("/user/profile", admin.UpdateUserProfile)
+		//修改用户密码
+		authGroup.PUT("/user/password", admin.UpdateUserPassword)
 		//获取路由列表
 		authGroup.GET("/route", admin.GetRoute)
 		//获取路由菜单
@@ -263,6 +295,18 @@ func InitAdmin(r *gin.Engine) {
 		authGroup.PUT("/banner/update", middleware.ValidationMiddleware(&inout.UpdateBannerReq{}), admin.UpdateBanner)
 		//删除轮播图
 		authGroup.DELETE("/banner/delete/:id", admin.DeleteBanner)
+
+		// 验证码开关管理
+		authGroup.GET("/captcha/status", admin.GetCaptchaStatus)
+		authGroup.PUT("/captcha/status", admin.UpdateCaptchaStatus)
+
+		// 系统访问日志接口（需要验证token）
+		authGroup.GET("/system/log", admin.GetSystemLog)
+		authGroup.DELETE("/system/log", admin.ClearSystemLog)
+
+		// 用户端操作日志接口（需要验证token）
+		authGroup.GET("/system/user/log", admin.GetUserLog)
+		authGroup.DELETE("/system/user/log", admin.ClearUserLog)
 
 	}
 }

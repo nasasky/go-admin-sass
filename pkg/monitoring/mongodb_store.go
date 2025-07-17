@@ -58,6 +58,11 @@ func getDatabaseName(path string) string {
 
 // SaveHTTPMetric 保存HTTP指标到MongoDB
 func SaveHTTPMetric(c *gin.Context, duration float64) {
+	// 跳过日志查询接口，避免循环记录
+	if c.Request.URL.Path == "/api/admin/system/log" || c.Request.URL.Path == "/api/admin/system/user/log" {
+		return
+	}
+
 	metric := HTTPMetric{
 		Timestamp:  utils.GetCurrentTimeForMongo(),
 		Method:     c.Request.Method,

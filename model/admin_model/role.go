@@ -6,7 +6,10 @@ type Role struct {
 	Id         int    `json:"id"`
 	RoleName   string `json:"role_name" gorm:"column:role_name"`
 	RoleDesc   string `json:"role_desc" gorm:"column:role_desc"`
+	UserId     int    `json:"user_id" gorm:"column:user_id"`
+	UserType   int    `json:"user_type" gorm:"column:user_type"`
 	Enable     int    `json:"enable"`
+	Sort       int    `json:"sort"`
 	CreateTime string `json:"create_time" gorm:"column:create_time"`
 	UpdateTime string `json:"update_time" gorm:"column:update_time"`
 }

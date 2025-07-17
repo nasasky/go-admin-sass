@@ -2,6 +2,7 @@ package public
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"nasa-go-admin/middleware"
@@ -176,6 +177,39 @@ func WebSocketConnect(c *gin.Context) {
 		ConnectionID: connID,
 	}
 
+	// 发送连接成功响应
+	initialResponse := map[string]interface{}{
+		"type": "pong",
+		"code": 200, // 添加状态码
+		"data": map[string]interface{}{
+			"message": "连接成功",
+			"user_id": userID,
+			"conn_id": connID,
+			"status":  "connected",
+		},
+	}
+	initialResponseBytes, err := json.Marshal(initialResponse)
+	if err == nil {
+		err = conn.WriteMessage(websocket.TextMessage, initialResponseBytes)
+		if err != nil {
+			log.Printf("发送初始响应失败: %v", err)
+			err = conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, "连接关闭"))
+			return
+		}
+	}
+
+	// 设置连接配置
+	conn.SetCloseHandler(func(code int, text string) error {
+		log.Printf("WebSocket连接关闭: code=%d, text=%s, userID=%d", code, text, userID)
+		message := websocket.FormatCloseMessage(code, "")
+		err := conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(time.Second))
+		if err != nil {
+			log.Printf("发送关闭消息失败: %v", err)
+		}
+		return nil
+	})
+
 	// 将客户端注册到hub (可能是阻塞操作，考虑超时处理)
 	select {
 	case hub.Register <- client:
@@ -201,6 +235,7 @@ func WebSocketConnect(c *gin.Context) {
 		middleware.LogWebSocketDisconnect(userID, connID, "client_closed")
 		atomic.AddInt64(&activeConnections, -1)
 		decrementIPCounter(clientIP)
+		// 注意：用户离线状态现在由Hub自动处理
 	})
 
 	// 发送欢迎消息 (使用非阻塞发送，避免死锁)
@@ -217,6 +252,11 @@ func WebSocketConnect(c *gin.Context) {
 		// 延迟2秒确保连接完全建立
 		time.Sleep(2 * time.Second)
 
+		// 注册用户连接
+		wsService := public_service.GetWebSocketService()
+		wsService.RegisterUserConnection(userID, connID, clientIP, userAgent)
+
+		// 发送离线消息
 		offlineService := public_service.NewOfflineMessageService()
 		err := offlineService.SendOfflineMessagesToUser(userID)
 		if err != nil {
@@ -268,11 +308,11 @@ func checkIPConnectionLimit(ip string) (int, bool) {
 
 func incrementIPCounter(ip string) {
 	value, exists := ipConnections.Load(ip)
-	if !exists {
-		ipConnections.Store(ip, 1)
-	} else {
+	if exists {
 		count := value.(int)
 		ipConnections.Store(ip, count+1)
+	} else {
+		ipConnections.Store(ip, 1)
 	}
 }
 
@@ -324,12 +364,24 @@ func getUserIDFromContext(c *gin.Context) (int, error) {
 
 // WebSocketStats 对外暴露的监控端点
 func WebSocketStats(c *gin.Context) {
+	wsService := public_service.GetWebSocketService()
+	metrics := wsService.GetMetrics()
+
 	c.JSON(http.StatusOK, gin.H{
 		"active_connections": atomic.LoadInt64(&activeConnections),
 		"total_connections":  atomic.LoadInt64(&totalConnections),
 		"total_messages":     atomic.LoadInt64(&totalMessages),
 		"ip_connections":     getIPConnectionCounts(),
+		"service_metrics":    metrics,
 	})
+}
+
+// WebSocketHealth 健康检查端点
+func WebSocketHealth(c *gin.Context) {
+	wsService := public_service.GetWebSocketService()
+	health := wsService.HealthCheck()
+
+	c.JSON(http.StatusOK, health)
 }
 
 func getIPConnectionCounts() map[string]int {

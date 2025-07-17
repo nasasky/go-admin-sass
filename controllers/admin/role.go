@@ -112,7 +112,7 @@ func AddRole(c *gin.Context) {
 	Resp.Succ(c, nil)
 }
 
-// 更新角色
+// 更新角色 - 只修改名称和描述
 func UpdateRole(c *gin.Context) {
 	var params inout.UpdateRole
 	if err := c.ShouldBindJSON(&params); err != nil {
@@ -120,47 +120,26 @@ func UpdateRole(c *gin.Context) {
 		return
 	}
 
-	// 设置默认值
-	enable := params.Enable
-	if enable == 0 {
-		enable = 1
-	}
-
-	sort := params.Sort
-	if sort == 0 {
-		sort = 0
-	}
-
-	userId := c.GetInt("uid")
-	userType := c.GetInt("type")
-	var Code string
-	if userType == 2 {
-		Code = "STORE"
-	} else {
-		Code = "SUPER_ADMIN"
-	}
-
-	// 解析 Pessimism 字段
-	pessimism, err := utils.ParsePessimism(c, params.Pessimism)
-	if err != nil {
-		Resp.Err(c, 20001, "Invalid pessimism value")
+	// 验证必要字段
+	if params.RoleName == "" {
+		Resp.Err(c, 20001, "角色名称不能为空")
 		return
 	}
 
-	// 创建 role 结构体并设置默认值
-	role := admin_model.UpdateRole{
-		Id:         params.Id,
-		RoleName:   params.RoleName,
-		RoleDesc:   params.RoleDesc,
-		UserId:     userId,
-		Enable:     enable,
-		Sort:       sort,
-		Code:       Code,
-		UpdateTime: time.Now(),
-		UserType:   userType,
+	if params.RoleDesc == "" {
+		Resp.Err(c, 20001, "角色描述不能为空")
+		return
 	}
 
-	err = roleService.UpdateRole(c, role, pessimism)
+	// 创建 role 结构体，只包含需要更新的字段
+	role := admin_model.UpdateRole{
+		Id:       params.Id,
+		RoleName: params.RoleName,
+		RoleDesc: params.RoleDesc,
+	}
+
+	// 传递空的权限数组，因为不修改权限
+	err := roleService.UpdateRole(c, role, []int{})
 	if err != nil {
 		Resp.Err(c, 20001, err.Error())
 		return

@@ -194,3 +194,29 @@ func (s *SystemInfoService) GetSystemInfoList(c *gin.Context, params inout.GetSy
 		Items:    items,
 	}, nil
 }
+
+// GetFirstSystemInfo 获取第一条系统信息记录（不需要验证，公开接口）
+func (s *SystemInfoService) GetFirstSystemInfo() (*inout.SystemInfoResponse, error) {
+	var systemInfo admin_model.SystemInfo
+	err := db.Dao.Model(&admin_model.SystemInfo{}).
+		Order("id ASC").
+		First(&systemInfo).Error
+
+	if err == gorm.ErrRecordNotFound {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &inout.SystemInfoResponse{
+		Id:          systemInfo.Id,
+		SystemName:  systemInfo.SystemName,
+		SystemTitle: systemInfo.SystemTitle,
+		IcpNumber:   systemInfo.IcpNumber,
+		Copyright:   systemInfo.Copyright,
+		Status:      systemInfo.Status,
+		CreateTime:  systemInfo.CreateTime,
+		UpdateTime:  systemInfo.UpdateTime,
+	}, nil
+}

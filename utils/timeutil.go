@@ -149,10 +149,9 @@ func FormatMongoTime(mongoTimeStr string) string {
 	return mongoTimeStr
 }
 
-// GetCurrentTimeForMongo 获取适合MongoDB存储的当前时间字符串
+// GetCurrentTimeForMongo 获取MongoDB格式的当前时间
 func GetCurrentTimeForMongo() string {
-	// 返回本地时间的字符串格式，直接存储为字符串避免ISO 8601格式
-	return time.Now().Format(DateTimeFormat)
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
 // GetCurrentUTCTimeForMongo 获取UTC时间字符串用于MongoDB存储
@@ -268,4 +267,21 @@ func GetTimeZoneInfo() TimeZoneInfo {
 		UTC:    utcTime.Format(DateTimeFormat),
 		Local:  now.Format(DateTimeFormat),
 	}
+}
+
+// FormatTimeForMongo 将时间格式化为MongoDB格式
+func FormatTimeForMongo(t time.Time) string {
+	return t.Format("2006-01-02 15:04:05")
+}
+
+// ParseMongoTime 解析MongoDB时间格式
+func ParseMongoTime(timeStr string) (time.Time, error) {
+	return time.Parse("2006-01-02 15:04:05", timeStr)
+}
+
+// GetDateRangeForMongo 获取日期范围（用于查询）
+func GetDateRangeForMongo(date string) (start, end string) {
+	start = date + " 00:00:00"
+	end = date + " 23:59:59"
+	return
 }

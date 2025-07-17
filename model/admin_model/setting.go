@@ -13,6 +13,7 @@ type SettingList struct {
 	BucketName string    `json:"bucket_name"`
 	BaseUrl    string    `json:"base_url"`
 	Type       string    `json:"type"`
+	Value      string    `json:"value"`
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time"`
 }
