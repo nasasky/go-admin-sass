@@ -98,15 +98,9 @@ func (s *SystemInfoService) UpdateSystemInfo(c *gin.Context, params inout.Update
 
 // GetSystemInfo 获取系统信息
 func (s *SystemInfoService) GetSystemInfo(c *gin.Context) (*inout.SystemInfoResponse, error) {
-	parentId, err := utils.GetParentId(c)
-	if err != nil {
-		return nil, err
-	}
-
-	// 使用 idx_tenant_status 索引获取启用的系统信息
+	// 获取第一条系统信息记录
 	var systemInfo admin_model.SystemInfo
-	err = db.Dao.Where("tenants_id = ? AND status = ?", parentId, 1).
-		First(&systemInfo).Error
+	err := db.Dao.Order("id ASC").First(&systemInfo).Error
 
 	if err == gorm.ErrRecordNotFound {
 		return nil, nil
